@@ -166,17 +166,6 @@ FILE* run_map_cmd(int argc, char *argv[]) {
     return fp;
 }
 
-typedef struct map_config {
-    char *map_value; // the value to map to
-    size_t map_value_length;
-    char separator;
-    char concatenator;
-} map_config_t;
-
-map_config_t new_map_config() {
-    return (map_config_t){NULL, 0, DEFAULT_SEPARATOR_VALUE, 0};
-}
-
 enum map_value_source_type {
     MAP_VALUE_SOURCE_UNSPECIFIED = -1,
     MAP_VALUE_SOURCE_CMDLINE_ARG = 0,
@@ -184,13 +173,28 @@ enum map_value_source_type {
     MAP_VALUE_SOURCE_CMD
 };
 
-int main(int argc, char *argv[]) {
+typedef struct map_config {
+    char *map_value; // the value to map to
+    size_t map_value_length;
+    char *map_value_file_path;
+    char separator;
+    char concatenator;
+    enum map_value_source_type map_value_source;
+} map_config_t;
+
+map_config_t new_map_config() {
+    return (map_config_t){
+        NULL,
+        0,
+        NULL,
+        DEFAULT_SEPARATOR_VALUE,
+        0,
+        MAP_VALUE_SOURCE_UNSPECIFIED,
+    };
+}
+
+void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]) {
     int opt;
-    char *value_file_path = NULL;
-
-    map_config_t map_config = new_map_config();
-
-    enum map_value_source_type map_source = MAP_VALUE_SOURCE_UNSPECIFIED;
 
     /* Define long options */
     static struct option long_options[] = {
@@ -199,56 +203,62 @@ int main(int argc, char *argv[]) {
         {0, 0, 0, 0}
     };
 
-    while ((opt = getopt_long(argc, argv, "s:c:v:", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(*argc, *argv, "s:c:v:", long_options, NULL)) != -1) {
         switch (opt) {
             case 'v':
-                if (map_source == MAP_VALUE_SOURCE_CMD || map_source == MAP_VALUE_SOURCE_FILE) {
+                if (map_config->map_value_source == MAP_VALUE_SOURCE_CMD || map_config->map_value_source == MAP_VALUE_SOURCE_FILE) {
                     fprintf(stderr, "Error: you can only specify one value mapping option (-v or --value-file or --value-cmd)\n");
-                    print_usage(argv);
+                    print_usage(*argv);
                     exit(EXIT_FAILURE);
                 }
-                map_config.map_value = optarg;
-                map_source = MAP_VALUE_SOURCE_CMDLINE_ARG;
+                map_config->map_value = optarg;
+                map_config->map_value_source = MAP_VALUE_SOURCE_CMDLINE_ARG;
                 break;
             case 'f': /* --value-file option */
-                if (map_source == MAP_VALUE_SOURCE_CMD || map_source == MAP_VALUE_SOURCE_CMDLINE_ARG) {
+                if (map_config->map_value_source == MAP_VALUE_SOURCE_CMD || map_config->map_value_source == MAP_VALUE_SOURCE_CMDLINE_ARG) {
                     fprintf(stderr, "Error: you can only specify one value mapping option (-v or --value-file or --value-cmd)\n");
-                    print_usage(argv);
+                    print_usage(*argv);
                     exit(EXIT_FAILURE);
                 }
-                value_file_path = optarg;
-                map_source = MAP_FILE;
+                map_config->map_value_file_path = optarg;
+                map_config->map_value_source = MAP_FILE;
                 break;
             case 'r': /* --value-cmd */
-                map_source = MAP_VALUE_SOURCE_CMD;
+                map_config->map_value_source = MAP_VALUE_SOURCE_CMD;
                 break;
             case 's':
-                parse_single_char_arg(optarg, &(map_config.separator), opt, argv);
+                parse_single_char_arg(optarg, &(map_config->separator), opt, *argv);
                 break;
             case 'c':
-                parse_single_char_arg(optarg, &(map_config.concatenator), opt, argv);
+                parse_single_char_arg(optarg, &(map_config->concatenator), opt, *argv);
                 break;
             case '?':
             default:
-                print_usage(argv);
+                print_usage(*argv);
                 exit(EXIT_FAILURE);
         }
     }
-    argc -= optind;
-    argv += optind;
+    *argc -= optind;
+    *argv += optind;
+}
+
+int main(int argc, char *argv[]) {
+    map_config_t map_config = new_map_config();
+
+    load_config_from_options(&map_config, &argc, &argv);
 
     int cmd_argc = 0;
     char **cmd_argv = NULL;
 
     /* Handle value from file if specified */
-    switch (map_source) {
+    switch (map_config.map_value_source) {
         case MAP_VALUE_SOURCE_UNSPECIFIED:
             /* Neither -v nor --value-file nor --value-cmd specified */
             fprintf(stderr, "Error: Either -v or --value-file or --value-cmd must be explicitly specified\n");
             print_usage(argv);
             exit(EXIT_FAILURE);
         case MAP_VALUE_SOURCE_FILE:
-            map_config.map_value = read_file_content(value_file_path, &(map_config.map_value_length));
+            map_config.map_value = read_file_content(map_config.map_value_file_path, &(map_config.map_value_length));
             if (map_config.map_value == NULL) {
                 /* Error message already printed in read_file_content */
                 exit(EXIT_FAILURE);
@@ -296,7 +306,7 @@ int main(int argc, char *argv[]) {
         /* scan the input for the separator char */
         for (size_t i = 0; i < bytes_read; i++) {
             if (buffer[i] == map_config.separator) {
-                if (map_source == MAP_VALUE_SOURCE_CMD) { /* different buffer treatment (for now) */
+                if (map_config.map_value_source == MAP_VALUE_SOURCE_CMD) { /* different buffer treatment (for now) */
                     FILE *map_cmd_out = run_map_cmd_fe(cmd_argc, cmd_argv);
                     if (map_cmd_out == NULL) {
                         /* Error message already printed in run_map_cmd */

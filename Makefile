@@ -1,21 +1,44 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -O2
 TARGET = map
-SRCS = $(wildcard *.c)
-OBJS = $(SRCS:.c=.o)
 
-.PHONY: all clean
+CMD_SRCS = main.c
+
+# Source files and object files
+SRCS = cmd.c config.c files.c options.c
+OBJS = $(SRCS:.c=.o) $(CMD_SRCS:.c=.o)
+
+# Test source and object
+TEST_SRC = tests.c
+TEST_OBJ = $(TEST_SRC:.c=.o) $(SRCS:.c=.o)
+TEST_TARGET = tests
+
+.PHONY: all clean test debug
 
 all: $(TARGET)
 
+# Main target
 $(TARGET): $(OBJS)
 	$(CC) $(OBJS) -o $(TARGET)
 
-%.o: %.c
+# Test target
+test: $(TEST_TARGET)
+	./$(TEST_TARGET)
+
+$(TEST_TARGET): $(TEST_OBJ)
+	$(CC) $(TEST_OBJ) -o $(TEST_TARGET)
+
+# Pattern rule for object files
+%.o: %.c %.h
 	$(CC) $(CFLAGS) -c $< -o $@
 
-clean:
-	rm -f $(OBJS) $(TARGET)
+# Special case for main.o which doesn't have a .h file
+main.o: main.c
+	$(CC) $(CFLAGS) -c $< -o $@
 
+# Debug build with symbols and debug info
 debug: CFLAGS = -Wall -Wextra -O0 -g -DDEBUG
-debug: all
+debug: clean all
+
+clean:
+	rm -f $(OBJS) $(TEST_OBJ) $(TARGET) $(TEST_TARGET)

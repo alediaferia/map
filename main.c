@@ -5,7 +5,6 @@
 #include "cmd.h"
 #include "files.h"
 
-
 int main(int argc, char *argv[]) {
     map_config_t map_config = new_map_config();
 

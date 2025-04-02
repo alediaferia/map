@@ -88,24 +88,6 @@ size_t calc_stdio_buffer_size() {
 
 #define DEFAULT_SEPARATOR_VALUE '\n'
 
-typedef int (*map_value_reader)(char *dst, void *ctx);
-
-typedef struct map_value_arg_ctx {
-    const char *arg;
-    int index;
-} map_value_arg_ctx_t;
-
-int map_value_arg_reader(char *dst, void *ctx) {
-    map_value_arg_ctx_t *arg_ctx = (map_value_arg_ctx_t*)ctx;
-
-    if (dst[arg_ctx->index] == '\0') {
-        return 0;
-    }
-
-    *dst = arg_ctx->arg[arg_ctx->index++];
-    return 1;
-}
-
 FILE* run_map_cmd_fe(int argc, char *argv[]) {
     if (argc == 0) {
         return NULL;

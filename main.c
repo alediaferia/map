@@ -64,11 +64,21 @@ int main(int argc, char *argv[]) {
 
     size_t bytes_read;
     size_t obuffer_pos = 0;
+    size_t last_separator_pos = 0; /* input item offset (one item per separator expected) */
 
     while ((bytes_read = fread(buffer, sizeof(char), bufsize, stdin)) > 0) {
         /* scan the input for the separator char */
         for (size_t i = 0; i < bytes_read; i++) {
-            if (buffer[i] == map_config.separator) {
+            int eoi = 0;
+            if (buffer[i] == map_config.separator || (eoi = (i == bytes_read - 1)) == 1) {
+                if (i - last_separator_pos <= 1) {
+                    /* no content between this and previous separator: skipping */
+                    last_separator_pos = i;
+                    continue;
+                } else {
+                    last_separator_pos = i;
+                }
+
                 if (map_config.map_value_source == MAP_VALUE_SOURCE_CMD) { /* different buffer treatment (for now) */
                     FILE *map_cmd_out = runcmd(cmd_argc, cmd_argv);
                     if (map_cmd_out == NULL) {
@@ -146,18 +156,21 @@ int main(int argc, char *argv[]) {
                     }
                 }
 
-                /* now time to write the concatenator char */
-                if (obuffer_pos + 1 >= bufsize) {
-                    /* Not enough space for concatenator, flush buffer */
-                    if (fwrite(obuffer, sizeof(char), obuffer_pos, stdout) != obuffer_pos) {
-                        fprintf(stderr, "Error writing to stdout\n");
-                        free(buffer);
-                        free(obuffer);
-                        exit(EXIT_FAILURE);
+                /* for now, we arbitrarily avoid writing the concatenator as the last character */
+                if (eoi == 0) {
+                    /* now time to write the concatenator char */
+                    if (obuffer_pos + 1 >= bufsize) {
+                        /* Not enough space for concatenator, flush buffer */
+                        if (fwrite(obuffer, sizeof(char), obuffer_pos, stdout) != obuffer_pos) {
+                            fprintf(stderr, "Error writing to stdout\n");
+                            free(buffer);
+                            free(obuffer);
+                            exit(EXIT_FAILURE);
+                        }
+                        obuffer_pos = 0;
                     }
-                    obuffer_pos = 0;
+                    obuffer[obuffer_pos++] = map_config.concatenator;
                 }
-                obuffer[obuffer_pos++] = map_config.concatenator;
             }
         }
 

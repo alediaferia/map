@@ -1,6 +1,6 @@
 # map
 
-Map is a command line utility that maps input content to an arbitrary value.
+map is a command line utility that maps input content to an arbitrary value.
 Incoming input is split by a 1-character separator (defaults to `\n`) and concatenated back (the concatenator can be customized).
 
 Think of it like `xargs`, but worse (for now...).

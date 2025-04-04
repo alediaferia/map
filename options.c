@@ -39,25 +39,25 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
     while ((opt = getopt_long(*argc, *argv, "s:c:v:", long_options, NULL)) != -1) {
         switch (opt) {
             case 'v':
-                if (map_config->map_value_source == MAP_VALUE_SOURCE_CMD || map_config->map_value_source == MAP_VALUE_SOURCE_FILE) {
+                if (map_config->source_type == MAP_VALUE_SOURCE_CMD || map_config->source_type == MAP_VALUE_SOURCE_FILE) {
                     fprintf(stderr, "Error: you can only specify one value mapping option (-v or --value-file or --value-cmd)\n");
                     print_usage(*argv);
                     exit(EXIT_FAILURE);
                 }
-                map_config->map_value = optarg;
-                map_config->map_value_source = MAP_VALUE_SOURCE_CMDLINE_ARG;
+                map_config->static_value = optarg;
+                map_config->source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
                 break;
             case 'f': /* --value-file option */
-                if (map_config->map_value_source == MAP_VALUE_SOURCE_CMD || map_config->map_value_source == MAP_VALUE_SOURCE_CMDLINE_ARG) {
+                if (map_config->source_type == MAP_VALUE_SOURCE_CMD || map_config->source_type == MAP_VALUE_SOURCE_CMDLINE_ARG) {
                     fprintf(stderr, "Error: you can only specify one value mapping option (-v or --value-file or --value-cmd)\n");
                     print_usage(*argv);
                     exit(EXIT_FAILURE);
                 }
                 map_config->map_value_file_path = optarg;
-                map_config->map_value_source = MAP_VALUE_SOURCE_FILE;
+                map_config->source_type = MAP_VALUE_SOURCE_FILE;
                 break;
             case 'r': /* --value-cmd */
-                map_config->map_value_source = MAP_VALUE_SOURCE_CMD;
+                map_config->source_type = MAP_VALUE_SOURCE_CMD;
                 break;
             case 's':
                 _parse_single_char_arg(optarg, &(map_config->separator), opt, *argv);

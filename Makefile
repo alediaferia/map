@@ -5,7 +5,7 @@ TARGET = map
 CMD_SRCS = main.c
 
 # Source files and object files
-SRCS = cmd.c config.c files.c options.c
+SRCS = cmd.c config.c files.c options.c map.c
 OBJS = $(SRCS:.c=.o) $(CMD_SRCS:.c=.o)
 
 # Test source and object
@@ -42,3 +42,7 @@ debug: clean all
 
 clean:
 	rm -f $(OBJS) $(TEST_OBJ) $(TARGET) $(TEST_TARGET)
+
+optimized: CFLAGS = -Wall -Wextra -O3
+optimized: TARGET = map_optimized
+optimized: clean all

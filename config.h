@@ -2,6 +2,7 @@
 #define CONFIG_H
 
 #include <stddef.h>
+#include <stdio.h>
 
 #define DEFAULT_SEPARATOR_VALUE '\n'
 #define FALLBACK_BUFFER_SIZE 4069
@@ -13,13 +14,16 @@ enum map_value_source_type {
     MAP_VALUE_SOURCE_CMD
 };
 
+
 typedef struct map_config {
-    char *map_value; // the value to map to
+    char *static_value; // the value to map to
     size_t map_value_length;
     char *map_value_file_path;
     char separator;
     char concatenator;
-    enum map_value_source_type map_value_source;
+    enum map_value_source_type source_type;
+    int cmd_argc;
+    char **cmd_argv;
 } map_config_t;
 
 /*

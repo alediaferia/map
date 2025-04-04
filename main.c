@@ -4,35 +4,32 @@
 #include "options.h"
 #include "cmd.h"
 #include "files.h"
+#include "map.h"
 
 int main(int argc, char *argv[]) {
     map_config_t map_config = new_map_config();
-
     load_config_from_options(&map_config, &argc, &argv);
 
-    int cmd_argc = 0;
-    char **cmd_argv = NULL;
-
     /* Handle value from file if specified */
-    switch (map_config.map_value_source) {
+    switch (map_config.source_type) {
         case MAP_VALUE_SOURCE_UNSPECIFIED:
             /* Neither -v nor --value-file nor --value-cmd specified */
             fprintf(stderr, "Error: Either -v or --value-file or --value-cmd must be explicitly specified\n");
             print_usage(argv);
             exit(EXIT_FAILURE);
         case MAP_VALUE_SOURCE_FILE:
-            map_config.map_value = mmap_file(map_config.map_value_file_path, &(map_config.map_value_length));
-            if (map_config.map_value == NULL) {
+            map_config.static_value = mmap_file(map_config.map_value_file_path, &(map_config.map_value_length));
+            if (map_config.static_value == NULL) {
                 /* Error message already printed in mmap_file */
                 exit(EXIT_FAILURE);
             }
             break;
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
-            map_config.map_value_length = strlen(map_config.map_value);
+            map_config.map_value_length = strlen(map_config.static_value);
             break;
         case MAP_VALUE_SOURCE_CMD:
-            cmd_argc = argc;
-            cmd_argv = argv;
+            map_config.cmd_argc = argc;
+            map_config.cmd_argv = argv;
             break;
     }
 
@@ -65,6 +62,7 @@ int main(int argc, char *argv[]) {
     size_t bytes_read;
     size_t obuffer_pos = 0;
     size_t last_separator_pos = 0; /* input item offset (one item per separator expected) */
+    map_value_source_t value = new_map_value_source();
 
     while ((bytes_read = fread(buffer, sizeof(char), bufsize, stdin)) > 0) {
         /* scan the input for the separator char */
@@ -79,81 +77,53 @@ int main(int argc, char *argv[]) {
                     last_separator_pos = i;
                 }
 
-                if (map_config.map_value_source == MAP_VALUE_SOURCE_CMD) { /* different buffer treatment (for now) */
-                    FILE *map_cmd_out = runcmd(cmd_argc, cmd_argv);
-                    if (map_cmd_out == NULL) {
-                        /* Error message already printed in run_map_cmd */
+                mvload(&map_config, &value);
+                size_t available = bufsize - obuffer_pos;
+                if (available <= 0) {
+                    /* Not enough space for the map value, flush buffer */
+                    if (fwrite(obuffer, sizeof(char), obuffer_pos, stdout) != obuffer_pos) {
+                        fprintf(stderr, "Error writing to stdout\n");
                         free(buffer);
                         free(obuffer);
                         exit(EXIT_FAILURE);
                     }
+                    obuffer_pos = 0;
+                    available = bufsize;
+                } 
+                size_t read_len = mvread(obuffer + obuffer_pos, available, &map_config, &value);
+                while (1) {
+                    if (read_len == 0) {
+                        mvclose(&map_config, &value);
+                        break;
+                    }
 
-                    size_t available = bufsize - obuffer_pos;
-                    if (available <= 0) {
-                        /* Not enough space for the map value, flush buffer */
+                    obuffer_pos += read_len;
+                    available -= read_len;
+                    if (obuffer_pos >= bufsize) {
+                        /* Time to flush buffer */
                         if (fwrite(obuffer, sizeof(char), obuffer_pos, stdout) != obuffer_pos) {
                             fprintf(stderr, "Error writing to stdout\n");
                             free(buffer);
                             free(obuffer);
+                            mvclose(&map_config, &value);
                             exit(EXIT_FAILURE);
                         }
                         obuffer_pos = 0;
                         available = bufsize;
                     }
-                    size_t read_len = fread(obuffer + obuffer_pos, sizeof(char), available, map_cmd_out);
-                    while (1) {
-                        if (read_len == 0) {
-                            pclose(map_cmd_out);
-                            break;
-                        }
 
-                        obuffer_pos += read_len;
-                        available -= read_len;
-                        if (obuffer_pos >= bufsize) {
-                            /* Time to flush buffer */
-                            if (fwrite(obuffer, sizeof(char), obuffer_pos, stdout) != obuffer_pos) {
-                                fprintf(stderr, "Error writing to stdout\n");
-                                free(buffer);
-                                free(obuffer);
-                                pclose(map_cmd_out);
-                                exit(EXIT_FAILURE);
-                            }
-                            obuffer_pos = 0;
-                            available = bufsize;
-                        }
-
-                        if (feof(map_cmd_out) != 0) {
-                            pclose(map_cmd_out);
-                            break;
-                        } else if (ferror(map_cmd_out) != 0) {
-                            fprintf(stderr, "Error reading from command output\n");
-                            free(buffer);
-                            free(obuffer);
-                            pclose(map_cmd_out);
-                            exit(EXIT_FAILURE);
-                        }
-                        /* read more data from the command output */
-                        read_len = fread(obuffer + obuffer_pos, sizeof(char), available, map_cmd_out);
+                    if (mveof(&map_config, &value) != 0) {
+                        mvclose(&map_config, &value);
+                        break;
+                    } else if (mverr(&map_config, &value) != 0) {
+                        fprintf(stderr, "Error reading from command output\n");
+                        free(buffer);
+                        free(obuffer);
+                        mvclose(&map_config, &value);
+                        exit(EXIT_FAILURE);
                     }
-                } else {
-                    size_t remaining = map_config.map_value_length;
-                    while (remaining > 0) {
-                        size_t len = (remaining < bufsize - obuffer_pos) ? remaining : bufsize - obuffer_pos;
-                        if (len == 0) {
-                            /* we have reached the end of the buffer: time to flush */
-                            if (fwrite(obuffer, sizeof(char), obuffer_pos, stdout) != obuffer_pos) {
-                                fprintf(stderr, "Error writing to stdout\n");
-                                free(buffer);
-                                free(obuffer);
-                                exit(EXIT_FAILURE);
-                            }
-                            obuffer_pos = 0;
-                        } else {
-                            memcpy(obuffer + obuffer_pos, map_config.map_value, len);
-                            obuffer_pos += len;
-                            remaining -= len;
-                        }
-                    }
+                    /* read more data from the command output */
+                    mvread(obuffer + obuffer_pos, available, &map_config, &value);
                 }
 
                 /* for now, we arbitrarily avoid writing the concatenator as the last character */

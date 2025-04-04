@@ -36,6 +36,19 @@ int mverr(const map_config_t *config, const map_value_source_t *v);
 void mvclose(const map_config_t *config, map_value_source_t *v);
 
 /*
+ * Resets the value source so that the next read will start from the beginning
+ * of the value.
+ * 
+ * If the value source is of type MAP_VALUE_SOURCE_CMD, this command
+ * will pclose the underlying stream.
+ * 
+ * In the other cases, it will reset the read offset to 0 only.
+ * 
+ * You should use mvclose if you do not plan to read from v again.
+ */
+void mvreset(const map_config_t *config, map_value_source_t *v);
+
+/*
  * Loads the value source as per the type specified in config.
  * Exits the program upon failure or validation issue.
  */

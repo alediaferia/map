@@ -1,5 +1,6 @@
 .vscode
 map
+map_optimized
 *.o
 *.txt
 tests

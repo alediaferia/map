@@ -44,3 +44,10 @@ void* mmap_file(const char *filepath, size_t *content_length) {
     *content_length = st.st_size;
     return mapped;
 }
+
+void assert_faccessible(const char *filepath) {
+    if (open(filepath, O_RDONLY) == -1) {
+        fprintf(stderr, "Error: Cannot open file %s: %s\n", filepath, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+}

@@ -17,7 +17,6 @@ enum map_value_source_type {
 
 typedef struct map_config {
     char *static_value; // the value to map to
-    size_t map_value_length;
     char *map_value_file_path;
     char separator;
     char concatenator;

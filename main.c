@@ -11,26 +11,11 @@ int main(int argc, char *argv[]) {
     load_config_from_options(&map_config, &argc, &argv);
 
     /* Handle value from file if specified */
-    switch (map_config.source_type) {
-        case MAP_VALUE_SOURCE_UNSPECIFIED:
-            /* Neither -v nor --value-file nor --value-cmd specified */
-            fprintf(stderr, "Error: Either -v or --value-file or --value-cmd must be explicitly specified\n");
-            print_usage(argv);
-            exit(EXIT_FAILURE);
-        case MAP_VALUE_SOURCE_FILE:
-            map_config.static_value = mmap_file(map_config.map_value_file_path, &(map_config.map_value_length));
-            if (map_config.static_value == NULL) {
-                /* Error message already printed in mmap_file */
-                exit(EXIT_FAILURE);
-            }
-            break;
-        case MAP_VALUE_SOURCE_CMDLINE_ARG:
-            map_config.map_value_length = strlen(map_config.static_value);
-            break;
-        case MAP_VALUE_SOURCE_CMD:
-            map_config.cmd_argc = argc;
-            map_config.cmd_argv = argv;
-            break;
+    if (map_config.source_type == MAP_VALUE_SOURCE_UNSPECIFIED) {
+        /* Neither -v nor --value-file nor --value-cmd specified */
+        fprintf(stderr, "Error: Either -v or --value-file or --value-cmd must be explicitly specified\n");
+        print_usage(argv);
+        exit(EXIT_FAILURE);
     }
 
     /* defaulting the concatenation argument to the separator one if unspecified */

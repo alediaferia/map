@@ -1,4 +1,5 @@
 #include "options.h"
+#include "files.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -40,7 +41,7 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
         switch (opt) {
             case 'v':
                 if (map_config->source_type == MAP_VALUE_SOURCE_CMD || map_config->source_type == MAP_VALUE_SOURCE_FILE) {
-                    fprintf(stderr, "Error: you can only specify one value mapping option (-v or --value-file or --value-cmd)\n");
+                    fprintf(stderr, "-v: Error: you can only specify one value mapping option (-v or --value-file or --value-cmd)\n");
                     print_usage(*argv);
                     exit(EXIT_FAILURE);
                 }
@@ -49,12 +50,13 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
                 break;
             case 'f': /* --value-file option */
                 if (map_config->source_type == MAP_VALUE_SOURCE_CMD || map_config->source_type == MAP_VALUE_SOURCE_CMDLINE_ARG) {
-                    fprintf(stderr, "Error: you can only specify one value mapping option (-v or --value-file or --value-cmd)\n");
+                    fprintf(stderr, "--value-file: Error: you can only specify one value mapping option (-v or --value-file or --value-cmd)\n");
                     print_usage(*argv);
                     exit(EXIT_FAILURE);
                 }
                 map_config->map_value_file_path = optarg;
                 map_config->source_type = MAP_VALUE_SOURCE_FILE;
+                assert_faccessible(optarg);
                 break;
             case 'r': /* --value-cmd */
                 map_config->source_type = MAP_VALUE_SOURCE_CMD;
@@ -73,4 +75,9 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
     }
     *argc -= optind;
     *argv += optind;
+
+    if (map_config->source_type == MAP_VALUE_SOURCE_CMD) {
+        map_config->cmd_argc = *argc;
+        map_config->cmd_argv = *argv;
+    }
 }

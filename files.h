@@ -8,4 +8,9 @@
  */
 void* mmap_file(const char *filepath, size_t *content_length);
 
+/*
+ * Ensures file can be opened for read otherwise exits.
+ */
+void assert_faccessible(const char *filepath);
+
 #endif

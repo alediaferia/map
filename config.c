@@ -8,7 +8,6 @@
 map_config_t new_map_config() {
     return (map_config_t){
         NULL,
-        0,
         NULL,
         DEFAULT_SEPARATOR_VALUE,
         0,

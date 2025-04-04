@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
                 size_t read_len = mvread(obuffer + obuffer_pos, available, &map_config, &value);
                 while (1) {
                     if (read_len == 0) {
-                        mvclose(&map_config, &value);
+                        mvreset(&map_config, &value);
                         break;
                     }
 
@@ -113,10 +113,10 @@ int main(int argc, char *argv[]) {
                     }
 
                     if (mveof(&map_config, &value) != 0) {
-                        mvclose(&map_config, &value);
+                        mvreset(&map_config, &value);
                         break;
                     } else if (mverr(&map_config, &value) != 0) {
-                        fprintf(stderr, "Error reading from command output\n");
+                        fprintf(stderr, "Error reading from map value\n");
                         free(buffer);
                         free(obuffer);
                         mvclose(&map_config, &value);
@@ -149,6 +149,7 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Error reading from stdin\n");
             free(buffer);
             free(obuffer);
+            mvclose(&map_config, &value); 
             exit(EXIT_FAILURE);
         }
     }
@@ -159,12 +160,14 @@ int main(int argc, char *argv[]) {
             fprintf(stderr, "Error writing to stdout\n");
             free(buffer);
             free(obuffer);
+            mvclose(&map_config, &value);      
             exit(EXIT_FAILURE);
         }
     }
 
     free(buffer);
     free(obuffer);
+    mvclose(&map_config, &value);
 
     exit(EXIT_SUCCESS);
 }

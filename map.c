@@ -4,6 +4,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <sys/mman.h>
 
 map_value_source_t new_map_value_source() {
     return (map_value_source_t){
@@ -51,6 +52,18 @@ int mverr(const map_config_t *config, const map_value_source_t *v) {
     }
 }
 
+void mvreset(const map_config_t *config, map_value_source_t *v) {
+    switch (config->source_type) {
+        case MAP_VALUE_SOURCE_CMD:
+            pclose(v->fsource);
+            v->fsource = NULL;
+            break;
+        default:
+            v->pos = 0;
+            break;
+    }
+}
+
 void mvclose(const map_config_t *config, map_value_source_t *v) {
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_CMD:
@@ -58,8 +71,15 @@ void mvclose(const map_config_t *config, map_value_source_t *v) {
             v->fsource = NULL;
             break;
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
+            v->pos = 0;
+            break;
         case MAP_VALUE_SOURCE_FILE:
             v->pos = 0;
+            if (v->msource != NULL) {
+                munmap((void*)(v->msource), v->mlen);
+                v->msource = NULL;
+                v->mlen = 0;
+            }
             break;
         default:
             break;

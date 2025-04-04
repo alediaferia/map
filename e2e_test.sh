@@ -100,8 +100,8 @@ run_test "Custom separator and concatenator" "./map -v 'mapped' -s ',' -c ';'" "
 # Test with empty input
 run_test "Empty input" "./map -v 'mapped'" "" ""
 
-# Test with multiple separators in a row
-run_test "Multiple separators" "./map -v 'mapped'" "mapped\nmapped\nmapped\n" "\n\n\n"
+# Test with multiple separators in a row with no content
+run_test "Multiple separators" "./map -v 'mapped'" "" "\n\n\n"
 
 # Test with large input (simulation)
 large_input=$(printf 'line\n%.0s' {1..100})

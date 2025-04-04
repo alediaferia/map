@@ -60,6 +60,7 @@ int main(int argc, char *argv[]) {
     */
 
     size_t bytes_read;
+    size_t total_bytes_read = 0;
     size_t obuffer_pos = 0;
     size_t last_separator_pos = 0; /* input item offset (one item per separator expected) */
     map_value_source_t value = new_map_value_source();
@@ -69,12 +70,12 @@ int main(int argc, char *argv[]) {
         for (size_t i = 0; i < bytes_read; i++) {
             int eoi = 0;
             if (buffer[i] == map_config.separator || (eoi = (i == bytes_read - 1)) == 1) {
-                if (i - last_separator_pos <= 1) {
+                if (i + total_bytes_read - last_separator_pos <= 1) {
                     /* no content between this and previous separator: skipping */
-                    last_separator_pos = i;
+                    last_separator_pos = i + total_bytes_read;
                     continue;
                 } else {
-                    last_separator_pos = i;
+                    last_separator_pos = i + total_bytes_read;
                 }
 
                 mvload(&map_config, &value);
@@ -143,6 +144,8 @@ int main(int argc, char *argv[]) {
                 }
             }
         }
+
+        total_bytes_read += bytes_read;
 
         /* Check for errors */
         if (ferror(stdin)) {

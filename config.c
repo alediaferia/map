@@ -17,7 +17,7 @@ map_config_t new_map_config() {
     };
 }
 
-size_t calc_stdio_buffer_size() {
+size_t calc_iobufsize() {
     struct stat s;
 
     int fd = fcntl(STDIN_FILENO, F_DUPFD, 0);

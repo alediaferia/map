@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
         map_config.concatenator = map_config.separator;
     }
         
-    size_t bufsize = calc_stdio_buffer_size();
+    size_t bufsize = calc_iobufsize();
 
     char *buffer = calloc(bufsize, sizeof(char));
     if (buffer == NULL) {

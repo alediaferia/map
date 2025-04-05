@@ -10,7 +10,7 @@ void test_example(void) {
 }
 
 void test_bufsize(void) {
-    assert(calc_stdio_buffer_size() > 1);
+    assert(calc_iobufsize() > 1);
 }
 
 int main(void) {

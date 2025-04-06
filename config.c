@@ -13,25 +13,9 @@ map_config_t new_map_config() {
         0,
         MAP_VALUE_SOURCE_UNSPECIFIED,
         0,
-        NULL
+        NULL,
+        1
     };
 }
 
-size_t calc_iobufsize() {
-    struct stat s;
 
-    int fd = fcntl(STDIN_FILENO, F_DUPFD, 0);
-    fstat(fd, &s);
-    close(fd);
-
-    size_t bufsize = s.st_blksize;
-    if (bufsize <= 0) {
-        /* try to use a page size from the system */
-        bufsize = sysconf(_SC_PAGESIZE);
-        if (bufsize <= 0) {
-            bufsize = FALLBACK_BUFFER_SIZE; // arbitrary fall back
-        }
-    }
-
-    return bufsize;
-}

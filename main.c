@@ -1,5 +1,7 @@
 #include <string.h>
+#include <errno.h>
 
+#include "buffers.h"
 #include "config.h"
 #include "options.h"
 #include "cmd.h"
@@ -47,110 +49,95 @@ int main(int argc, char *argv[]) {
     size_t bytes_read;
     size_t total_bytes_read = 0;
     size_t obuffer_pos = 0;
-    size_t last_separator_pos = 0; /* input item offset (one item per separator expected) */
     map_value_source_t value = new_map_value_source();
 
+    /*
+        read from stdin into the buffer
+        if the data read so far includes the separator character or this is the end of the input
+            map it to the map value and write it to the output buffer
+        else extend the buffer to read more and repeat
+    */
+
+    // chunk input by bufsize
     while ((bytes_read = fread(buffer, sizeof(char), bufsize, stdin)) > 0) {
-        /* scan the input for the separator char */
-        for (size_t i = 0; i < bytes_read; i++) {
-            int eoi = 0;
-            if (buffer[i] == map_config.separator || (eoi = (i == bytes_read - 1)) == 1) {
-                if (i + total_bytes_read - last_separator_pos <= 1) {
-                    /* no content between this and previous separator: skipping */
-                    last_separator_pos = i + total_bytes_read;
-                    continue;
+        
+        int eoiflag = 0;
+        size_t i = 0;
+        int mapflag = 0;
+        int prev_spos = 0;
+
+        for (; i < bytes_read; i++) {
+            domap:
+
+            eoiflag = (i == bytes_read - 1) && feof(stdin);
+            // produce the map value to the output buffer
+            if (buffer[i] == map_config.separator || eoiflag == 1) {
+                mapflag = 1;
+
+                if (i - prev_spos == 0) {
+                    /* ignore the current item if empty */
+                    prev_spos = i + 1;
+                    continue; // move to the next item;
                 } else {
-                    last_separator_pos = i + total_bytes_read;
+                    prev_spos = i + 1;
                 }
 
+                // load the map value
                 mvload(&map_config, &value);
                 size_t available = bufsize - obuffer_pos;
-                if (available <= 0) {
-                    /* Not enough space for the map value, flush buffer */
-                    if (fwrite(obuffer, sizeof(char), obuffer_pos, stdout) != obuffer_pos) {
-                        fprintf(stderr, "Error writing to stdout\n");
-                        free(buffer);
-                        free(obuffer);
-                        exit(EXIT_FAILURE);
-                    }
-                    obuffer_pos = 0;
-                    available = bufsize;
-                } 
-                size_t read_len = mvread(obuffer + obuffer_pos, available, &map_config, &value);
                 while (1) {
-                    if (read_len == 0) {
-                        mvreset(&map_config, &value);
-                        break;
-                    }
-
-                    obuffer_pos += read_len;
-                    available -= read_len;
-                    if (obuffer_pos >= bufsize) {
-                        /* Time to flush buffer */
-                        if (fwrite(obuffer, sizeof(char), obuffer_pos, stdout) != obuffer_pos) {
-                            fprintf(stderr, "Error writing to stdout\n");
-                            free(buffer);
-                            free(obuffer);
-                            mvclose(&map_config, &value);
-                            exit(EXIT_FAILURE);
-                        }
+                    if (available <= 0) {
+                        // no more output buffer available: flush it
+                        bufflush(obuffer, bufsize, stdout);
                         obuffer_pos = 0;
                         available = bufsize;
                     }
 
-                    if (mveof(&map_config, &value) != 0) {
-                        mvreset(&map_config, &value);
-                        break;
-                    } else if (mverr(&map_config, &value) != 0) {
-                        fprintf(stderr, "Error reading from map value\n");
-                        free(buffer);
-                        free(obuffer);
-                        mvclose(&map_config, &value);
+                    size_t mapped = mvread(obuffer + obuffer_pos, available, &map_config, &value);
+                    available -= mapped;
+                    obuffer_pos += mapped;
+                    if (mverr(&map_config, &value) > 0) {
+                        fprintf(stderr, "Unable to write map value\n");
                         exit(EXIT_FAILURE);
+                    } else if (mveof(&map_config, &value) > 0) {
+                        mvreset(&map_config, &value);
+                        break; // we have mapped the value fully, so can break
                     }
-                    /* read more data from the command output */
-                    mvread(obuffer + obuffer_pos, available, &map_config, &value);
-                }
+                } // map value writing cycle
 
-                /* for now, we arbitrarily avoid writing the concatenator as the last character */
-                if (eoi == 0) {
-                    /* now time to write the concatenator char */
-                    if (obuffer_pos + 1 >= bufsize) {
-                        /* Not enough space for concatenator, flush buffer */
-                        if (fwrite(obuffer, sizeof(char), obuffer_pos, stdout) != obuffer_pos) {
-                            fprintf(stderr, "Error writing to stdout\n");
-                            free(buffer);
-                            free(obuffer);
-                            exit(EXIT_FAILURE);
-                        }
+                if (eoiflag == 0) {
+                    // write the concatenator if this is not the end of input
+                    if (available < 1) {
+                        bufflush(obuffer, bufsize, stdout);
                         obuffer_pos = 0;
+                        available = bufsize;
                     }
                     obuffer[obuffer_pos++] = map_config.concatenator;
                 }
             }
         }
 
-        total_bytes_read += bytes_read;
+        if (mapflag == 0) {
+            /* 
+                we haven't mapped the current input to anything yet
+                because we haven't found a separator character. 
 
-        /* Check for errors */
-        if (ferror(stdin)) {
-            fprintf(stderr, "Error reading from stdin\n");
-            free(buffer);
-            free(obuffer);
-            mvclose(&map_config, &value); 
-            exit(EXIT_FAILURE);
+                We cannot through the current buffer away so we should extend
+                it if we expect more input coming in.
+            */
+            if (!feof(stdin)) {
+                size_t newsize = bufsize * 2;
+                buffer = realloc(buffer, newsize);
+                bytes_read += fread(buffer + bufsize, sizeof(char), newsize - bufsize, stdin);
+                bufsize = newsize;
+                goto domap;
+            }
         }
     }
 
     /* Flush any remaining data in the output buffer */
     if (obuffer_pos > 0) {
-        if (fwrite(obuffer, sizeof(char), obuffer_pos, stdout) != obuffer_pos) {
-            fprintf(stderr, "Error writing to stdout\n");
-            free(buffer);
-            free(obuffer);
-            mvclose(&map_config, &value);      
-            exit(EXIT_FAILURE);
-        }
+        bufflush(obuffer, obuffer_pos, stdout);
     }
 
     free(buffer);

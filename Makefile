@@ -5,7 +5,7 @@ TARGET = map
 CMD_SRCS = main.c
 
 # Source files and object files
-SRCS = cmd.c config.c files.c options.c map.c
+SRCS = cmd.c config.c files.c options.c map.c buffers.c
 OBJS = $(SRCS:.c=.o) $(CMD_SRCS:.c=.o)
 
 # Test source and object

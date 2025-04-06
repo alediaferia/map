@@ -94,7 +94,7 @@ void mvload(const map_config_t *config, map_value_source_t *source) {
             exit(EXIT_FAILURE);
         case MAP_VALUE_SOURCE_FILE:
             if (source->msource == NULL) {
-                source->msource = mmap_file(config->map_value_file_path, &(source->mlen));
+                source->msource = mmap_file(config->vfpath, &(source->mlen));
                 if (source->msource == NULL) {
                     exit(EXIT_FAILURE);
                 }
@@ -102,7 +102,7 @@ void mvload(const map_config_t *config, map_value_source_t *source) {
             break;
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
             if (source->msource == NULL) {
-                source->msource = config->static_value;
+                source->msource = config->vstatic;
                 source->mlen = strlen(source->msource);
             }
             break;

@@ -5,16 +5,19 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
+#include <errno.h>
 
 void print_usage(char *argv[]) {
-    fprintf(stderr, "Usage: %s [options] (-v <static-value> | --value-file <file-path> | --value-cmd) [--] [cmd]\n", argv[0]);
-    fprintf(stderr, "\nOptions:\n");
-    fprintf(stderr, "     -v <static-value>          Value to map to (default: none)\n");
-    fprintf(stderr, "     --value-file <file-path>   Path to a file containing the value to map to\n");
-    fprintf(stderr, "     --value-cmd <cmd>          The command to run to get the value to map to\n");
+    fprintf(stderr, "Usage: %s [options] <value-source> [--] [cmd]\n\n", argv[0]);
+    fprintf(stderr, "Value sources (one required):\n");
+    fprintf(stderr, "     -v <static-value>          Static value to map to\n");
+    fprintf(stderr, "     --value-file <file-path>   Read map value from file\n");
+    fprintf(stderr, "     --value-cmd               Use output from command as map value\n");
+    fprintf(stderr, "\nOptional arguments:\n");
     fprintf(stderr, "     -s <separator>             Separator character (default: '\\n')\n");
     fprintf(stderr, "     -c <concatenator>          Concatenator character (default: same as separator)\n");
-    fprintf(stderr, "     -h, --help                 Show this help message\n");
+    fprintf(stderr, "     --strip-input             Exclude input value from map output\n");
+    fprintf(stderr, "     -h, --help                Show this help message\n");
 }
 
 void _parse_single_char_arg(char *arg, char *concat_arg, char opt_id, char *argv[]) {
@@ -34,6 +37,7 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
     static struct option long_options[] = {
         {"value-file", required_argument, 0, 'f'},
         {"value-cmd", no_argument, 0, 'r'},
+        {"strip-input", no_argument, 0, 'z'},
         {0, 0, 0, 0}
     };
 
@@ -45,7 +49,7 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
                     print_usage(*argv);
                     exit(EXIT_FAILURE);
                 }
-                map_config->static_value = optarg;
+                map_config->vstatic = optarg;
                 map_config->source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
                 break;
             case 'f': /* --value-file option */
@@ -54,7 +58,7 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
                     print_usage(*argv);
                     exit(EXIT_FAILURE);
                 }
-                map_config->map_value_file_path = optarg;
+                map_config->vfpath = optarg;
                 map_config->source_type = MAP_VALUE_SOURCE_FILE;
                 assert_faccessible(optarg);
                 break;
@@ -67,6 +71,9 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
             case 'c':
                 _parse_single_char_arg(optarg, &(map_config->concatenator), opt, *argv);
                 break;
+            case 'z':
+                map_config->stripinput_flag = 1;
+                break;
             case '?':
             default:
                 print_usage(*argv);
@@ -77,7 +84,20 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
     *argv += optind;
 
     if (map_config->source_type == MAP_VALUE_SOURCE_CMD) {
-        map_config->cmd_argc = *argc;
-        map_config->cmd_argv = *argv;
+        if (map_config->stripinput_flag != 1) {
+            /* making room for one more input argument */
+            char **argve = calloc((*argc) + 1, sizeof(char*));
+            if (argve == NULL) {
+                fprintf(stderr, "Error: unable to allocate memory: %s\n", strerror(errno));
+                exit(EXIT_FAILURE);
+            }
+            memcpy(argve, *argv, *argc);
+
+            map_config->cmd_argc = (*argc) + 1;
+            map_config->cmd_argv = argve;
+        } else {
+            map_config->cmd_argc = *argc;
+            map_config->cmd_argv = *argv;
+        }
     }
 }

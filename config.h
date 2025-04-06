@@ -5,24 +5,23 @@
 #include <stdio.h>
 
 #define DEFAULT_SEPARATOR_VALUE '\n'
-#define FALLBACK_BUFFER_SIZE 4069
 
-enum map_value_source_type {
+enum map_vsource {
     MAP_VALUE_SOURCE_UNSPECIFIED = -1,
     MAP_VALUE_SOURCE_CMDLINE_ARG = 0,
     MAP_VALUE_SOURCE_FILE,
     MAP_VALUE_SOURCE_CMD
 };
 
-
 typedef struct map_config {
-    char *static_value; // the value to map to
-    char *map_value_file_path;
+    char *vstatic; // the value to map to
+    char *vfpath; // the file path to the value to map to
     char separator;
     char concatenator;
-    enum map_value_source_type source_type;
+    enum map_vsource source_type;
     int cmd_argc;
     char **cmd_argv;
+    int stripinput_flag;
 } map_config_t;
 
 /*
@@ -30,6 +29,5 @@ typedef struct map_config {
  */
 map_config_t new_map_config();
 
-size_t calc_iobufsize();
 
 #endif // CONFIG_H

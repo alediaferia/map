@@ -10,19 +10,20 @@
 void print_usage(char *argv[]) {
     fprintf(stderr, "Usage: %s [options] <value-source> [--] [cmd]\n\n", argv[0]);
     fprintf(stderr, "Value sources (one required):\n");
-    fprintf(stderr, "     -v <static-value>          Static value to map to\n");
-    fprintf(stderr, "     --value-file <file-path>   Read map value from file\n");
-    fprintf(stderr, "     --value-cmd               Use output from command as map value\n");
+    fprintf(stderr, "     -v <static-value>          Static value to map to (implies -z)\n\n");
+    fprintf(stderr, "     --value-file <file-path>   Read map value from file (implies -z)\n\n");
+    fprintf(stderr, "     --value-cmd                Use output from command as map value.\n");
+    fprintf(stderr, "                                Each mapped item will be appended to the command arguments list, unless -z is specified\n");
     fprintf(stderr, "\nOptional arguments:\n");
     fprintf(stderr, "     -s <separator>             Separator character (default: '\\n')\n");
     fprintf(stderr, "     -c <concatenator>          Concatenator character (default: same as separator)\n");
-    fprintf(stderr, "     --strip-input             Exclude input value from map output\n");
-    fprintf(stderr, "     -h, --help                Show this help message\n");
+    fprintf(stderr, "     -z, --discard-input        Exclude input value from map output\n");
+    fprintf(stderr, "     -h, --help                 Show this help message\n");
 }
 
 void _parse_single_char_arg(char *arg, char *concat_arg, char opt_id, char *argv[]) {
     if (strlen(arg) > 1) {
-        fprintf(stderr, "Error: the -%c argument must be a single charaacter\n", opt_id);
+        fprintf(stderr, "Error: the -%c argument must be a single character\n", opt_id);
         print_usage(argv);
         exit(EXIT_FAILURE);
     }
@@ -37,11 +38,11 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
     static struct option long_options[] = {
         {"value-file", required_argument, 0, 'f'},
         {"value-cmd", no_argument, 0, 'r'},
-        {"strip-input", no_argument, 0, 'z'},
+        {"discard-input", no_argument, 0, 'z'},
         {0, 0, 0, 0}
     };
 
-    while ((opt = getopt_long(*argc, *argv, "s:c:v:", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(*argc, *argv, "zs:c:v:", long_options, NULL)) != -1) {
         switch (opt) {
             case 'v':
                 if (map_config->source_type == MAP_VALUE_SOURCE_CMD || map_config->source_type == MAP_VALUE_SOURCE_FILE) {
@@ -51,6 +52,7 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
                 }
                 map_config->vstatic = optarg;
                 map_config->source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
+                map_config->stripinput_flag = 1;
                 break;
             case 'f': /* --value-file option */
                 if (map_config->source_type == MAP_VALUE_SOURCE_CMD || map_config->source_type == MAP_VALUE_SOURCE_CMDLINE_ARG) {
@@ -60,6 +62,8 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
                 }
                 map_config->vfpath = optarg;
                 map_config->source_type = MAP_VALUE_SOURCE_FILE;
+                map_config->stripinput_flag = 1;
+
                 assert_faccessible(optarg);
                 break;
             case 'r': /* --value-cmd */
@@ -84,14 +88,14 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
     *argv += optind;
 
     if (map_config->source_type == MAP_VALUE_SOURCE_CMD) {
-        if (map_config->stripinput_flag != 1) {
+        if (map_config->stripinput_flag == 0) {
             /* making room for one more input argument */
-            char **argve = calloc((*argc) + 1, sizeof(char*));
+            char **argve = calloc((*argc) + 2, sizeof(char*));
             if (argve == NULL) {
                 fprintf(stderr, "Error: unable to allocate memory: %s\n", strerror(errno));
                 exit(EXIT_FAILURE);
             }
-            memcpy(argve, *argv, *argc);
+            memcpy(argve, *argv, (*argc) * sizeof(char*));
 
             map_config->cmd_argc = (*argc) + 1;
             map_config->cmd_argv = argve;

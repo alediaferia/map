@@ -75,38 +75,41 @@ echo "multi-line\ntest\ncontent" > test_multiline.txt
 # -----------------
 
 # Test with static value (-v flag)
-run_test "Basic static value" "./map -v 'mapped'" "mapped\nmapped\n" "line1\nline2\n"
+run_test "Basic static value" "./map --discard-input -v 'mapped'" "mapped\nmapped\n" "line1\nline2\n"
 
 # Test with file value (--value-file flag)
-run_test "Basic file value" "./map --value-file test_file.txt" "test content\ntest content\n" "line1\nline2\n"
+run_test "Basic file value" "./map --discard-input --value-file test_file.txt" "test content\ntest content\n" "line1\nline2\n"
 
 # Test with command value (--value-cmd flag and a simple echo command)
-run_test "Basic command value" "./map --value-cmd -- echo -n 'cmd output'" "cmd output\ncmd output\n" "line1\nline2\n"
+run_test "Basic command value" "./map --discard-input --value-cmd -- echo -n 'cmd output'" "cmd output\ncmd output\n" "line1\nline2\n"
+
+# Test with command value passing input item through
+run_test "Basic command value" "./map --value-cmd -- echo -n 'cmd output'" "cmd output line1\ncmd output line2\n" "line1\nline2\n"
 
 # -----------------
 # Custom Separator/Concatenator Tests
 # -----------------
 
 # Test with custom separator
-run_test "Custom separator" "./map -v 'mapped' -s ','" "mapped,mapped\n" "line1,line2\n"
+run_test "Custom separator" "./map --discard-input -v 'mapped' -s ','" "mapped,mapped\n" "line1,line2\n"
 
 # Test with custom separator and concatenator
-run_test "Custom separator and concatenator" "./map -v 'mapped' -s ',' -c ';'" "mapped;mapped\n" "line1,line2\n"
+run_test "Custom separator and concatenator" "./map --discard-input -v 'mapped' -s ',' -c ';'" "mapped;mapped\n" "line1,line2\n"
 
 # -----------------
 # Edge Case Tests
 # -----------------
 
 # Test with empty input
-run_test "Empty input" "./map -v 'mapped'" "" ""
+run_test "Empty input" "./map --discard-input -v 'mapped'" "" ""
 
 # Test with multiple separators in a row with no content
-run_test "Multiple separators" "./map -v 'mapped'" "" "\n\n\n"
+run_test "Multiple separators" "./map --discard-input -v 'mapped'" "" "\n\n\n"
 
 # Test with large input (simulation)
 large_input=$(printf 'line\n%.0s' {1..100})
 expected_large_output=$(printf 'mapped\n%.0s' {1..100})
-run_test "Large input" "./map -v 'mapped'" "$expected_large_output" "$large_input"
+run_test "Large input" "./map --discard-input -v 'mapped'" "$expected_large_output" "$large_input"
 
 # -----------------
 # Error Tests
@@ -119,7 +122,7 @@ run_error_test "Missing value argument" "./map" "Either -v or --value-file or --
 run_error_test "Non-existent file" "./map --value-file nonexistent.txt" "Cannot open file" ""
 
 # Test with invalid separator argument
-run_error_test "Invalid separator" "./map -v 'mapped' -s 'ab'" "must be a single charaacter" ""
+run_error_test "Invalid separator" "./map -v 'mapped' -s 'ab'" "must be a single character" ""
 
 # -----------------
 # Test Results

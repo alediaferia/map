@@ -47,7 +47,6 @@ int main(int argc, char *argv[]) {
     */
 
     size_t bytes_read;
-    size_t total_bytes_read = 0;
     size_t obuffer_pos = 0;
     map_value_source_t value = new_map_value_source();
 
@@ -60,11 +59,11 @@ int main(int argc, char *argv[]) {
 
     // chunk input by bufsize
     while ((bytes_read = fread(buffer, sizeof(char), bufsize, stdin)) > 0) {
-        
         int eoiflag = 0;
         size_t i = 0;
         int mapflag = 0;
         int prev_spos = 0;
+        char *item = NULL;
 
         for (; i < bytes_read; i++) {
             domap:
@@ -74,11 +73,24 @@ int main(int argc, char *argv[]) {
             if (buffer[i] == map_config.separator || eoiflag == 1) {
                 mapflag = 1;
 
-                if (i - prev_spos == 0) {
+                size_t ilen = i - prev_spos;
+                if (ilen == 0) {
                     /* ignore the current item if empty */
                     prev_spos = i + 1;
                     continue; // move to the next item;
                 } else {
+                    /* save the current item (to be used if referenced in the output) */
+                    item = calloc(ilen + 1, sizeof(char));
+                    if (item == NULL) {
+                        fprintf(stderr, "Error: unable to allocate memory (%zu bytes): %s. Aborting\n", ilen, strerror(errno));
+                        exit(EXIT_FAILURE);
+                    }
+                    memcpy(item, buffer + prev_spos, ilen * sizeof(char));
+
+                    if (map_config.stripinput_flag == 0 && map_config.source_type == MAP_VALUE_SOURCE_CMD) {
+                        map_config.cmd_argv[map_config.cmd_argc - 1] = item;
+                    }
+
                     prev_spos = i + 1;
                 }
 
@@ -113,6 +125,13 @@ int main(int argc, char *argv[]) {
                         available = bufsize;
                     }
                     obuffer[obuffer_pos++] = map_config.concatenator;
+                }
+            }
+            if (item != NULL) {
+                free(item);
+                item = NULL;
+                if (map_config.stripinput_flag == 0) {
+                    map_config.cmd_argv[map_config.cmd_argc - 1] = NULL;
                 }
             }
         }

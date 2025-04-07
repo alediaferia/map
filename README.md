@@ -2,6 +2,8 @@
 
 map is a command line utility that maps input content to an arbitrary value.
 
+At the moment, map reads the input data from standard input only.
+
 The map value can be retrieved from a file, specified statically from the command line, or be the result of a command invocation.
 
 Incoming input is split by a 1-character separator (defaults to `\n`) and concatenated back (the concatenator can be customized).
@@ -59,3 +61,11 @@ SOMETHING ELSE,SOMETHING ELSE,SOMETHING ELSE,SOMETHING ELSE,SOMETHING ELSE,SOMET
 ## Other usage
 
 Check `e2e_test.sh` for additional use cases.
+
+## Development
+
+This project is still experimental. The command line interface will surely change and get simplified in the future.
+
+There will likely be no stable release before adding support for referencing the input items in the map value (think `-I` in xargs).
+
+Incoming features also include the ability to map directly from/to files.

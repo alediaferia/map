@@ -54,7 +54,6 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
                 }
                 map_config->vstatic = optarg;
                 map_config->source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
-                map_config->stripinput_flag = 1;
                 break;
             case 'f': /* --value-file option */
                 if (map_config->source_type == MAP_VALUE_SOURCE_CMD || map_config->source_type == MAP_VALUE_SOURCE_CMDLINE_ARG) {
@@ -73,7 +72,7 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
                 break;
             case 'I': /* -I <replstr> */
                 map_config->replstr = optarg;
-                map_config->stripinput_flag = 1;
+                map_config->stripinput_flag = 0;
                 break;
             case 's':
                 _parse_single_char_arg(optarg, &(map_config->separator), opt, *argv);

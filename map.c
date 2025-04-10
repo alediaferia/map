@@ -62,6 +62,12 @@ void mvreset(const map_config_t *config, map_ctx_t *v) {
             pclose(v->fsource);
             v->fsource = NULL;
             break;
+        case MAP_VALUE_SOURCE_CMDLINE_ARG:
+            if (config->replstr) {
+                v->pos = 0;
+                free((void*)v->msource);
+                v->msource = NULL;
+            }
         default:
             v->pos = 0;
             break;
@@ -76,6 +82,10 @@ void mvclose(const map_config_t *config, map_ctx_t *v) {
             break;
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
             v->pos = 0;
+            if (config->replstr) {
+                free((void*)v->msource);
+            }
+            v->msource = NULL;
             break;
         case MAP_VALUE_SOURCE_FILE:
             v->pos = 0;
@@ -143,7 +153,11 @@ void mvload(const map_config_t *config, map_ctx_t *source) {
             break;
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
             if (source->msource == NULL) {
-                source->msource = config->vstatic;
+                if (config->replstr) {
+                    source->msource = strreplall(config->vstatic, config->replstr, source->item);
+                } else {
+                    source->msource = config->vstatic;
+                }
                 source->mlen = strlen(source->msource);
             }
             break;

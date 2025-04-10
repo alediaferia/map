@@ -94,6 +94,7 @@ run_test "Basic command value with item pass through" "./map --value-cmd -- echo
 
 # Test with replacement string
 run_test "Basic command value with replacement string" "./map -I {} --value-cmd -- echo -n 'This is {}'" "This is line1\nThis is line2\nThis is line3\n" "line1\nline2\nline3"
+run_test "Static value with replacement string" "./map -I {} -v 'Hello {}'" "Hello World\nHello People\n" "World\nPeople"
 
 # -----------------
 # Custom Separator/Concatenator Tests

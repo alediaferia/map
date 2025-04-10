@@ -6,7 +6,8 @@
 #include "config.h"
 #include "buffers.h"
 #include "strings.h"
-#include "map.h"
+
+#include "test_map.h"
 
 void test_example(void) {
     // Test case example
@@ -31,35 +32,6 @@ void test_strrepl(void) {
     free((void*)replaced);
 }
 
-char** _map_replcmdargs(const char *replstr, const char *v, int argc, char *argv[]);
-void test__map_replcmdargs(void) {
-    int cmd_argc = 4;
-    char *args[] = { "program", "arg1", "argtorepl", "arg3" };
-    char replstr[] = "argtorepl";
-    char item[] = "arg2";
-
-    char **replargs = _map_replcmdargs(replstr, item, cmd_argc, args);
-    assert(replargs);
-
-    printf("Replacement result: %s\n", replargs[2]);
-    assert(strcmp(replargs[2], item) == 0);
-
-    free(replargs);
-}
-
-void test__map_replcmdargs_multi_occurs(void) {
-    int cmd_argc = 4;
-    char *args[] = { "program", "arg1", "complex{}arg{}", "arg3" };
-    char replstr[] = "{}";
-    char item[] = "__";
-
-    char **replargs = _map_replcmdargs(replstr, item, cmd_argc, args);
-
-    assert(replargs);
-    printf("Replacement result: %s\n", replargs[2]);
-    assert(strcmp(replargs[2], "complex__arg__") == 0);
-}
-
 int main(void) {
     printf("Running tests...\n");
     
@@ -67,8 +39,8 @@ int main(void) {
     test_example();
     test_bufsize();
     test_strrepl();
-    test__map_replcmdargs();
-    test__map_replcmdargs_multi_occurs();
+
+    test_map();
     
     printf("\x1b[32mAll tests PASSED\x1b[0m\n");
     return 0;

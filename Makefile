@@ -9,7 +9,7 @@ SRCS = cmd.c config.c files.c options.c map.c buffers.c strings.c
 OBJS = $(SRCS:.c=.o) $(CMD_SRCS:.c=.o)
 
 # Test source and object
-TEST_SRC = tests.c
+TEST_SRC = $(wildcard test*.c)
 TEST_OBJ = $(TEST_SRC:.c=.o) $(SRCS:.c=.o)
 TEST_TARGET = tests
 

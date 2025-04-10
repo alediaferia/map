@@ -115,7 +115,11 @@ void mvload(const map_config_t *config, map_ctx_t *source) {
                 char **p_argv = config->cmd_argv;
                 if (config->replstr) {
                     p_argv = _map_replcmdargs(config->replstr, source->item, config->cmd_argc, config->cmd_argv);
+                } else if (config->stripinput_flag == 0) {
+                    /* TODO: move cmd_argv resizing to here (from the options parsing code) */
+                    config->cmd_argv[config->cmd_argc - 1] = source->item;
                 }
+
                 source->fsource = runcmd(config->cmd_argc, p_argv);
                 if (source->fsource == NULL) {
                     exit(EXIT_FAILURE);

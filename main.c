@@ -86,11 +86,6 @@ int main(int argc, char *argv[]) {
                     }
                     memcpy(map_ctx.item, buffer + prev_spos, ilen * sizeof(char));
 
-                    /* TODO: move to mvload */
-                    if (map_config.stripinput_flag == 0 && map_config.source_type == MAP_VALUE_SOURCE_CMD) {
-                        map_config.cmd_argv[map_config.cmd_argc - 1] = map_ctx.item;
-                    }
-
                     prev_spos = i + 1;
                 }
 

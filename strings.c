@@ -3,6 +3,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 
 const char *strrepl(const char *src, const char *replstr, const char *v, int *pos) {
     const size_t replstr_len = strlen(replstr);
@@ -45,21 +46,48 @@ const char *strrepl(const char *src, const char *replstr, const char *v, int *po
 }
 
 const char *strreplall(const char *src, const char *replstr, const char *v) {
+    size_t size = strlen(src);
+    char *replaced = calloc(size + 1, sizeof(char));
+    if (replaced == NULL) {
+        perror("Unable to allocate memory");
+        exit(EXIT_FAILURE);
+    }
+
+    size_t replstrlen = strlen(replstr);
+    size_t vlen = strlen(v);
+
+    // storing a copy of src to act on
+    memcpy(replaced, src, strlen(src));
+
     int replpos = -1;
-    const char *cur = src;
-    const char *replaced;
+    int offset = 0; // the offset on the original string (replaced)
 
-    int j = 0;
     do {
-        replaced = strrepl(cur, replstr, v, &replpos);
-        if (replpos != -1) {
-            if (j > 0) {
-                free((char*)cur);
-            }
-            cur = replaced;
-        }
+        const char *r = strrepl(replaced + offset, replstr, v, &replpos);
+        
+        /*
+            r contains the original string with 1 occurrence of replstr replaced with v
+            replpos now points at the index right after the first *replaced* (so v) occurrence of replstr.
+            we want to update replaced with the contents of r before the next iteration, so:
+            1. resize replaced to hold r (original size - replstr size + size of v)
+            2. copy r from offset to offset + replpos
+            3. update offset to replpos + offset
+        */
 
-        j++;
+        if (replpos != -1) {
+            size_t newsize = size - replstrlen + vlen;
+            replaced = realloc(replaced, newsize);
+            if (replaced == NULL) {
+                perror("Unable to allocate memory");
+                exit(EXIT_FAILURE);
+            }
+            memcpy(replaced + offset, r, replpos);
+
+            offset += replpos;
+            size = newsize;
+
+            free((void*)r);
+        }
     } while (replpos != -1);
 
     return replaced;

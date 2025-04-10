@@ -3,7 +3,13 @@
 
 # Compile the program
 echo "Compiling the program..."
-make
+make test
+
+# Check if make was successful
+if [ $? -ne 0 ]; then
+    echo "Compilation failed"
+    exit 1
+fi
 
 # Colors for test results
 GREEN='\033[0;32m'

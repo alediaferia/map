@@ -11,8 +11,8 @@
 const char *strrepl(const char *src, const char *replstr, const char *v, int *pos);
 
 /*
-    Replaces all occurrences of replstr in src with v. Returns src if untouched,
-    otherwise returns a new string.
+    Replaces all occurrences of replstr in src with v.
+    Always returns a new string. If no occurrences are found, returns a copy of src.
 */
 const char *strreplall(const char *src, const char *replstr, const char *v);
 

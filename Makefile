@@ -5,7 +5,7 @@ TARGET = map
 CMD_SRCS = main.c
 
 # Source files and object files
-SRCS = cmd.c config.c files.c options.c map.c buffers.c
+SRCS = cmd.c config.c files.c options.c map.c buffers.c strings.c
 OBJS = $(SRCS:.c=.o) $(CMD_SRCS:.c=.o)
 
 # Test source and object
@@ -22,6 +22,7 @@ $(TARGET): $(OBJS)
 	$(CC) $(OBJS) -o $(TARGET)
 
 # Test target
+test: CFLAGS += -g -DDEBUG -O0
 test: $(TEST_TARGET)
 	./$(TEST_TARGET)
 

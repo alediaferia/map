@@ -18,6 +18,8 @@ void print_usage(char *argv[]) {
     fprintf(stderr, "     -s <separator>             Separator character (default: '\\n')\n");
     fprintf(stderr, "     -c <concatenator>          Concatenator character (default: same as separator)\n");
     fprintf(stderr, "     -z, --discard-input        Exclude input value from map output\n");
+    fprintf(stderr, "     -I <replstr>               Specifies a replacement pattern string. When used, it overrides -z.\n");
+    fprintf(stderr,"                                 When the pattern is found in the map value, it is replaced with the current item from the input.\n\n");
     fprintf(stderr, "     -h, --help                 Show this help message\n");
 }
 
@@ -42,7 +44,7 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
         {0, 0, 0, 0}
     };
 
-    while ((opt = getopt_long(*argc, *argv, "zs:c:v:", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(*argc, *argv, "zs:c:v:I:", long_options, NULL)) != -1) {
         switch (opt) {
             case 'v':
                 if (map_config->source_type == MAP_VALUE_SOURCE_CMD || map_config->source_type == MAP_VALUE_SOURCE_FILE) {
@@ -68,6 +70,10 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
                 break;
             case 'r': /* --value-cmd */
                 map_config->source_type = MAP_VALUE_SOURCE_CMD;
+                break;
+            case 'I': /* -I <replstr> */
+                map_config->replstr = optarg;
+                map_config->stripinput_flag = 1;
                 break;
             case 's':
                 _parse_single_char_arg(optarg, &(map_config->separator), opt, *argv);

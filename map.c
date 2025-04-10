@@ -91,6 +91,43 @@ void mvclose(const map_config_t *config, map_ctx_t *v) {
     }
 }
 
+void _mvloadcmd(const map_config_t *config, map_ctx_t *source) {
+    char **p_argv = config->cmd_argv;
+    int argc = config->cmd_argc;
+    if (config->replstr) {
+        p_argv = _map_replcmdargs(config->replstr, source->item, config->cmd_argc, config->cmd_argv);
+    } else if (config->stripinput_flag == 0) {
+        /*
+            If we are not stripping the input item,
+            then we will be passing the input item as an additional
+            command argument: therefore, we need to extend the current argv
+            vector to hold one more arg.
+        */
+
+        p_argv = calloc((config->cmd_argc) + 2, sizeof(char*));
+        if (p_argv == NULL) {
+            perror("Unable to allocate memory");
+            exit(EXIT_FAILURE);
+        }
+        memcpy(p_argv, config->cmd_argv, config->cmd_argc * sizeof(char*));
+        p_argv[argc++] = source->item;
+    }
+
+    source->fsource = runcmd(argc, p_argv);
+    if (source->fsource == NULL) {
+        exit(EXIT_FAILURE);
+    }
+
+    if (config->replstr) {
+        for (int i = 0; i < argc; i++) {
+            free(p_argv[i]);
+        }
+        free(p_argv);
+    } else if (config->stripinput_flag == 0) {
+        free(p_argv);
+    }
+}
+
 void mvload(const map_config_t *config, map_ctx_t *source) {
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_UNSPECIFIED:
@@ -112,25 +149,7 @@ void mvload(const map_config_t *config, map_ctx_t *source) {
             break;
         case MAP_VALUE_SOURCE_CMD:
             if (source->fsource == NULL) {
-                char **p_argv = config->cmd_argv;
-                if (config->replstr) {
-                    p_argv = _map_replcmdargs(config->replstr, source->item, config->cmd_argc, config->cmd_argv);
-                } else if (config->stripinput_flag == 0) {
-                    /* TODO: move cmd_argv resizing to here (from the options parsing code) */
-                    config->cmd_argv[config->cmd_argc - 1] = source->item;
-                }
-
-                source->fsource = runcmd(config->cmd_argc, p_argv);
-                if (source->fsource == NULL) {
-                    exit(EXIT_FAILURE);
-                }
-
-                if (config->replstr) {
-                    for (int i = 0; i < config->cmd_argc; i++) {
-                        free(p_argv[i]);
-                    }
-                    free(p_argv);
-                }
+                _mvloadcmd(config, source);
             }
             break;
     }

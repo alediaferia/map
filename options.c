@@ -94,20 +94,7 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
     *argv += optind;
 
     if (map_config->source_type == MAP_VALUE_SOURCE_CMD) {
-        if (map_config->stripinput_flag == 0) {
-            /* making room for one more input argument */
-            char **argve = calloc((*argc) + 2, sizeof(char*));
-            if (argve == NULL) {
-                fprintf(stderr, "Error: unable to allocate memory: %s\n", strerror(errno));
-                exit(EXIT_FAILURE);
-            }
-            memcpy(argve, *argv, (*argc) * sizeof(char*));
-
-            map_config->cmd_argc = (*argc) + 1;
-            map_config->cmd_argv = argve;
-        } else {
-            map_config->cmd_argc = *argc;
-            map_config->cmd_argv = *argv;
-        }
+        map_config->cmd_argc = *argc;
+        map_config->cmd_argv = *argv;
     }
 }

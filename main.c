@@ -131,9 +131,6 @@ int main(int argc, char *argv[]) {
             if (map_ctx.item != NULL) {
                 free(map_ctx.item);
                 map_ctx.item = NULL;
-                if (map_config.stripinput_flag == 0 && map_config.source_type == MAP_VALUE_SOURCE_CMD) {
-                    map_config.cmd_argv[map_config.cmd_argc - 1] = NULL;
-                }
             }
         }
 

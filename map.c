@@ -8,6 +8,7 @@
 #include <sys/mman.h>
 
 char** _map_replcmdargs(const char *replstr, const char *v, int argc, char *argv[]);
+void _mvloadcmd(const map_config_t *config, map_ctx_t *source);
 
 map_ctx_t new_map_ctx() {
     return (map_ctx_t){
@@ -19,7 +20,7 @@ map_ctx_t new_map_ctx() {
     };
 }
 
-size_t mvread(char *dst, size_t max_len, const map_config_t *config, map_ctx_t *src) {
+size_t map_vread(char *dst, size_t max_len, const map_config_t *config, map_ctx_t *src) {
     size_t len;
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_CMD:
@@ -36,7 +37,7 @@ size_t mvread(char *dst, size_t max_len, const map_config_t *config, map_ctx_t *
     }
 }
 
-int mveof(const map_config_t *config, const map_ctx_t *v) {
+int map_veof(const map_config_t *config, const map_ctx_t *v) {
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_CMD:
             return feof(v->fsource);
@@ -47,7 +48,7 @@ int mveof(const map_config_t *config, const map_ctx_t *v) {
     }
 }
 
-int mverr(const map_config_t *config, const map_ctx_t *v) {
+int map_verr(const map_config_t *config, const map_ctx_t *v) {
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_CMD:
             return ferror(v->fsource);
@@ -56,7 +57,7 @@ int mverr(const map_config_t *config, const map_ctx_t *v) {
     }
 }
 
-void mvreset(const map_config_t *config, map_ctx_t *v) {
+void map_vreset(const map_config_t *config, map_ctx_t *v) {
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_CMD:
             pclose(v->fsource);
@@ -74,7 +75,7 @@ void mvreset(const map_config_t *config, map_ctx_t *v) {
     }
 }
 
-void mvclose(const map_config_t *config, map_ctx_t *v) {
+void map_vclose(const map_config_t *config, map_ctx_t *v) {
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_CMD:
             pclose(v->fsource);
@@ -142,7 +143,7 @@ void _mvloadcmd(const map_config_t *config, map_ctx_t *source) {
     }
 }
 
-void mvload(const map_config_t *config, map_ctx_t *source) {
+void map_vload(const map_config_t *config, map_ctx_t *source) {
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_UNSPECIFIED:
             fprintf(stderr, "Error: map value unspecified\n");

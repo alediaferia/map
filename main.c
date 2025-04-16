@@ -90,7 +90,7 @@ int main(int argc, char *argv[]) {
                 }
 
                 // load the map value
-                mvload(&map_config, &map_ctx);
+                map_vload(&map_config, &map_ctx);
                 size_t available = bufsize - obuffer_pos;
                 while (1) {
                     if (available <= 0) {
@@ -105,14 +105,14 @@ int main(int argc, char *argv[]) {
                         }
                     }
 
-                    size_t mapped = mvread(obuffer + obuffer_pos, available, &map_config, &map_ctx);
+                    size_t mapped = map_vread(obuffer + obuffer_pos, available, &map_config, &map_ctx);
                     available -= mapped;
                     obuffer_pos += mapped;
-                    if (mverr(&map_config, &map_ctx) > 0) {
+                    if (map_verr(&map_config, &map_ctx) > 0) {
                         fprintf(stderr, "Unable to write map value\n");
                         exit(EXIT_FAILURE);
-                    } else if (mveof(&map_config, &map_ctx) > 0) {
-                        mvreset(&map_config, &map_ctx);
+                    } else if (map_veof(&map_config, &map_ctx) > 0) {
+                        map_vreset(&map_config, &map_ctx);
                         break; // we have mapped the value fully, so can break
                     }
                 } // map value writing cycle
@@ -159,7 +159,7 @@ int main(int argc, char *argv[]) {
 
     free(buffer);
     free(obuffer);
-    mvclose(&map_config, &map_ctx);
+    map_vclose(&map_config, &map_ctx);
 
     exit(EXIT_SUCCESS);
 }

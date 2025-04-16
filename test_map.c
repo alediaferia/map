@@ -50,7 +50,7 @@ void test_mvload_cmdline_replstr(void) {
     ctx.pos = 0;
     ctx.msource = NULL;
 
-    mvload(&config, &ctx);
+    map_vload(&config, &ctx);
     
     assert(strcmp(ctx.msource, "Hello World!") == 0);
     free((void*)ctx.msource);
@@ -65,7 +65,7 @@ void test_mvclose_cmdline_replstr(void) {
     map_ctx_t ctx;
     ctx.msource = calloc(42, sizeof(char));
 
-    mvclose(&config, &ctx);
+    map_vclose(&config, &ctx);
     assert(ctx.msource == NULL);
 }
 
@@ -125,7 +125,7 @@ size_t _count_occurrences(const char *str, const char *substr, size_t max_length
 }
 
 void test_perf_mvload_bigfile_replstr(void) {
-    printf("====== Begin perf. test - mvload bigfile replstr ======\n");
+    printf("====== Begin perf. test - map_vload bigfile replstr ======\n");
     map_config_t config;
     config.source_type = MAP_VALUE_SOURCE_FILE;
 
@@ -168,7 +168,7 @@ void test_perf_mvload_bigfile_replstr(void) {
     struct timeval start_time, end_time;
     gettimeofday(&start_time, NULL);
 
-    mvload(&config, &ctx);
+    map_vload(&config, &ctx);
 
     gettimeofday(&end_time, NULL);
     getrusage(RUSAGE_SELF, &end_usage);
@@ -222,9 +222,9 @@ void test_perf_mvload_bigfile_replstr(void) {
             
     close(tmpfd);
     unlink(ftemplate);
-    mvclose(&config, &ctx);
+    map_vclose(&config, &ctx);
 
-    printf("====== End perf. test - mvload bigfile replstr ======\n");
+    printf("====== End perf. test - map_vload bigfile replstr ======\n");
 }
 
 void test_map(void) {

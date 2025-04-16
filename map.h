@@ -28,25 +28,25 @@ map_ctx_t new_map_ctx();
     Any occurrences of config->replstr will be replaced with src->item
     if both are present.
 
-    note: src must have been initialized using mvload.
+    note: src must have been initialized using map_vload.
  */
-size_t mvread(char *dst, size_t max_len, const map_config_t *config, map_ctx_t *src);
+size_t map_vread(char *dst, size_t max_len, const map_config_t *config, map_ctx_t *src);
 
 /*
  * Returns 1 if the source v has been consumed fully.
  */
-int mveof(const map_config_t *config, const map_ctx_t *v);
+int map_veof(const map_config_t *config, const map_ctx_t *v);
 
 /*
  * Returns 1 if the underlying source v stream reports an error. 
  * Returns 0 in all other cases.
  */
-int mverr(const map_config_t *config, const map_ctx_t *v);
+int map_verr(const map_config_t *config, const map_ctx_t *v);
 
 /*
  * Closes any stream associated with v and resets the internal offset.
  */
-void mvclose(const map_config_t *config, map_ctx_t *v);
+void map_vclose(const map_config_t *config, map_ctx_t *v);
 
 /*
  * Resets the value source so that the next read will start from the beginning
@@ -57,15 +57,15 @@ void mvclose(const map_config_t *config, map_ctx_t *v);
  * 
  * In the other cases, it will reset the read offset to 0 only.
  * 
- * You should use mvclose if you do not plan to read from v again.
+ * You should use map_vclose if you do not plan to read from v again.
  */
-void mvreset(const map_config_t *config, map_ctx_t *v);
+void map_vreset(const map_config_t *config, map_ctx_t *v);
 
 /*
  * Loads the value source as per the type specified in config.
  * Exits the program upon failure or validation issue.
  */
 
-void mvload(const map_config_t *config, map_ctx_t *source);
+void map_vload(const map_config_t *config, map_ctx_t *source);
 
 #endif // MAP_H

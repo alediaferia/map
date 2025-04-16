@@ -3,7 +3,7 @@
 
 # Compile the program
 echo "Compiling the program..."
-make test
+make
 
 # Check if make was successful
 if [ $? -ne 0 ]; then

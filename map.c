@@ -90,7 +90,11 @@ void mvclose(const map_config_t *config, map_ctx_t *v) {
         case MAP_VALUE_SOURCE_FILE:
             v->pos = 0;
             if (v->msource != NULL) {
-                munmap((void*)(v->msource), v->mlen);
+                if (config->replstr) {
+                    free(v->msource);
+                } else {
+                    munmap((void*)(v->msource), v->mlen);
+                }
                 v->msource = NULL;
                 v->mlen = 0;
             }
@@ -148,6 +152,13 @@ void mvload(const map_config_t *config, map_ctx_t *source) {
                 source->msource = mmap_file(config->vfpath, &(source->mlen));
                 if (source->msource == NULL) {
                     exit(EXIT_FAILURE);
+                }
+
+                if (config->replstr) {
+                    const char *mmapped = source->msource;
+                    source->msource = strreplall(source->msource, config->replstr, source->item);
+                    munmap((void*)mmapped, source->mlen);
+                    source->mlen = strlen(source->msource);
                 }
             }
             break;

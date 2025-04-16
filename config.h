@@ -22,7 +22,7 @@ typedef struct map_config {
     int cmd_argc;
     char **cmd_argv;
     int stripinput_flag;
-    char *replstr;
+    const char *replstr;
 } map_config_t;
 
 /*

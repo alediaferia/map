@@ -45,7 +45,7 @@ void test_mvload_cmdline_replstr(void) {
     config.replstr = "@@@";
     config.vstatic = "Hello @@@!";
 
-    map_ctx_t ctx;
+    map_value_t ctx;
     ctx.item = "World";
     ctx.pos = 0;
     ctx.msource = NULL;
@@ -62,7 +62,7 @@ void test_mvclose_cmdline_replstr(void) {
     config.replstr = "@@@";
     config.vstatic = "Hello @@@!";
 
-    map_ctx_t ctx;
+    map_value_t ctx;
     ctx.msource = calloc(42, sizeof(char));
 
     map_vclose(&config, &ctx);
@@ -150,7 +150,7 @@ void test_perf_mvload_bigfile_replstr(void) {
 
     config.vfpath = ftemplate;
     
-    map_ctx_t ctx;
+    map_value_t ctx;
     ctx.item = "Map Rocks!";
     ctx.msource = NULL;
     ctx.mlen = 0;

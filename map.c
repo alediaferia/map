@@ -8,28 +8,22 @@
 #include <sys/mman.h>
 
 char** _map_replcmdargs(const char *replstr, const char *v, int argc, char *argv[]);
-void _mvloadcmd(const map_config_t *config, map_ctx_t *source);
+void _mvloadcmd(const map_config_t *config, map_value_t *v);
 
-map_ctx_t new_map_ctx() {
-    return (map_ctx_t){
-        NULL,
-        NULL,
-        0,
-        0,
-        NULL
-    };
+void map_ctx_init(map_value_t *v) {
+    memset(v, 0, sizeof(map_value_t));
 }
 
-size_t map_vread(char *dst, size_t max_len, const map_config_t *config, map_ctx_t *src) {
+size_t map_vread(char *dst, size_t max_len, const map_config_t *config, map_value_t *v) {
     size_t len;
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_CMD:
             /* relying on fsource's internal offset - no need to update ours */
-            return fread(dst, sizeof(char), max_len, src->fsource);
+            return fread(dst, sizeof(char), max_len, v->fsource);
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
         case MAP_VALUE_SOURCE_FILE:
-            len = strlcpy(dst, src->msource + src->pos, max_len);
-            src->pos += len;
+            len = strlcpy(dst, v->msource + v->pos, max_len);
+            v->pos += len;
             return len;
         default:
             fprintf(stderr, "Error: map value unspecified\n");
@@ -37,7 +31,7 @@ size_t map_vread(char *dst, size_t max_len, const map_config_t *config, map_ctx_
     }
 }
 
-int map_veof(const map_config_t *config, const map_ctx_t *v) {
+int map_veof(const map_config_t *config, const map_value_t *v) {
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_CMD:
             return feof(v->fsource);
@@ -48,7 +42,7 @@ int map_veof(const map_config_t *config, const map_ctx_t *v) {
     }
 }
 
-int map_verr(const map_config_t *config, const map_ctx_t *v) {
+int map_verr(const map_config_t *config, const map_value_t *v) {
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_CMD:
             return ferror(v->fsource);
@@ -57,7 +51,7 @@ int map_verr(const map_config_t *config, const map_ctx_t *v) {
     }
 }
 
-void map_vreset(const map_config_t *config, map_ctx_t *v) {
+void map_vreset(const map_config_t *config, map_value_t *v) {
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_CMD:
             pclose(v->fsource);
@@ -75,7 +69,7 @@ void map_vreset(const map_config_t *config, map_ctx_t *v) {
     }
 }
 
-void map_vclose(const map_config_t *config, map_ctx_t *v) {
+void map_vclose(const map_config_t *config, map_value_t *v) {
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_CMD:
             pclose(v->fsource);
@@ -92,7 +86,7 @@ void map_vclose(const map_config_t *config, map_ctx_t *v) {
             v->pos = 0;
             if (v->msource != NULL) {
                 if (config->replstr) {
-                    free(v->msource);
+                    free((void*)v->msource);
                 } else {
                     munmap((void*)(v->msource), v->mlen);
                 }
@@ -106,11 +100,11 @@ void map_vclose(const map_config_t *config, map_ctx_t *v) {
     }
 }
 
-void _mvloadcmd(const map_config_t *config, map_ctx_t *source) {
+void _mvloadcmd(const map_config_t *config, map_value_t *v) {
     char **p_argv = config->cmd_argv;
     int argc = config->cmd_argc;
     if (config->replstr) {
-        p_argv = _map_replcmdargs(config->replstr, source->item, config->cmd_argc, config->cmd_argv);
+        p_argv = _map_replcmdargs(config->replstr, v->item, config->cmd_argc, config->cmd_argv);
     } else if (config->stripinput_flag == 0) {
         /*
             If we are not stripping the input item,
@@ -125,11 +119,11 @@ void _mvloadcmd(const map_config_t *config, map_ctx_t *source) {
             exit(EXIT_FAILURE);
         }
         memcpy(p_argv, config->cmd_argv, config->cmd_argc * sizeof(char*));
-        p_argv[argc++] = source->item;
+        p_argv[argc++] = v->item;
     }
 
-    source->fsource = runcmd(argc, p_argv);
-    if (source->fsource == NULL) {
+    v->fsource = runcmd(argc, p_argv);
+    if (v->fsource == NULL) {
         exit(EXIT_FAILURE);
     }
 
@@ -143,39 +137,43 @@ void _mvloadcmd(const map_config_t *config, map_ctx_t *source) {
     }
 }
 
-void map_vload(const map_config_t *config, map_ctx_t *source) {
+void _map_vload_src_f(const map_config_t *config, map_value_t *v) {
+    if (v->msource == NULL) {
+        v->msource = mmap_file(config->vfpath, &(v->mlen));
+        if (v->msource == NULL) {
+            exit(EXIT_FAILURE);
+        }
+
+        if (config->replstr) {
+            const char *mmapped = v->msource;
+            v->msource = strreplall(v->msource, config->replstr, v->item);
+            munmap((void*)mmapped, v->mlen);
+            v->mlen = strlen(v->msource);
+        }
+    }
+}
+
+void map_vload(const map_config_t *config, map_value_t *v) {
     switch (config->source_type) {
         case MAP_VALUE_SOURCE_UNSPECIFIED:
             fprintf(stderr, "Error: map value unspecified\n");
             exit(EXIT_FAILURE);
         case MAP_VALUE_SOURCE_FILE:
-            if (source->msource == NULL) {
-                source->msource = mmap_file(config->vfpath, &(source->mlen));
-                if (source->msource == NULL) {
-                    exit(EXIT_FAILURE);
-                }
-
-                if (config->replstr) {
-                    const char *mmapped = source->msource;
-                    source->msource = strreplall(source->msource, config->replstr, source->item);
-                    munmap((void*)mmapped, source->mlen);
-                    source->mlen = strlen(source->msource);
-                }
-            }
+            _map_vload_src_f(config, v);
             break;
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
-            if (source->msource == NULL) {
+            if (v->msource == NULL) {
                 if (config->replstr) {
-                    source->msource = strreplall(config->vstatic, config->replstr, source->item);
+                    v->msource = strreplall(config->vstatic, config->replstr, v->item);
                 } else {
-                    source->msource = config->vstatic;
+                    v->msource = config->vstatic;
                 }
-                source->mlen = strlen(source->msource);
+                v->mlen = strlen(v->msource);
             }
             break;
         case MAP_VALUE_SOURCE_CMD:
-            if (source->fsource == NULL) {
-                _mvloadcmd(config, source);
+            if (v->fsource == NULL) {
+                _mvloadcmd(config, v);
             }
             break;
     }

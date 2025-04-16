@@ -48,7 +48,9 @@ int main(int argc, char *argv[]) {
 
     size_t bytes_read;
     size_t obuffer_pos = 0;
-    map_ctx_t map_ctx = new_map_ctx();
+
+    map_value_t map_ctx;
+    map_ctx_init(&map_ctx);
 
     /*
         read from stdin into the buffer

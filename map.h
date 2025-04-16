@@ -4,11 +4,13 @@
 #include "config.h"
 
 typedef struct {
-    /* stream holding the map value (if not in msource) */
-    FILE *fsource;
+    union {
+        /* stream holding the map value (if not in msource) */
+        FILE *fsource;
 
-    /* pointer to the map value in memory (if not in fsource) */
-    const char *msource;
+        /* pointer to the map value in memory (if not in fsource) */
+        const char *msource;
+    };
 
     /* length of the map value (if not msource) */
     size_t mlen;
@@ -16,12 +18,11 @@ typedef struct {
     /* tracks the last byte from msource written to the destination */
     size_t pos;
 
-    /* the item to map */
+    /* the input item to map: needed when the map value references the input item */
     char *item;
-} map_ctx_t;
+} map_value_t;
 
-
-map_ctx_t new_map_ctx();
+void map_ctx_init(map_value_t *ctx);
 
 /*
     Copies at most max_len bytes of src into dst.
@@ -30,23 +31,23 @@ map_ctx_t new_map_ctx();
 
     note: src must have been initialized using map_vload.
  */
-size_t map_vread(char *dst, size_t max_len, const map_config_t *config, map_ctx_t *src);
+size_t map_vread(char *dst, size_t max_len, const map_config_t *config, map_value_t *v);
 
 /*
  * Returns 1 if the source v has been consumed fully.
  */
-int map_veof(const map_config_t *config, const map_ctx_t *v);
+int map_veof(const map_config_t *config, const map_value_t *v);
 
 /*
  * Returns 1 if the underlying source v stream reports an error. 
  * Returns 0 in all other cases.
  */
-int map_verr(const map_config_t *config, const map_ctx_t *v);
+int map_verr(const map_config_t *config, const map_value_t *v);
 
 /*
  * Closes any stream associated with v and resets the internal offset.
  */
-void map_vclose(const map_config_t *config, map_ctx_t *v);
+void map_vclose(const map_config_t *config, map_value_t *v);
 
 /*
  * Resets the value source so that the next read will start from the beginning
@@ -59,13 +60,13 @@ void map_vclose(const map_config_t *config, map_ctx_t *v);
  * 
  * You should use map_vclose if you do not plan to read from v again.
  */
-void map_vreset(const map_config_t *config, map_ctx_t *v);
+void map_vreset(const map_config_t *config, map_value_t *v);
 
 /*
  * Loads the value source as per the type specified in config.
  * Exits the program upon failure or validation issue.
  */
 
-void map_vload(const map_config_t *config, map_ctx_t *source);
+void map_vload(const map_config_t *config, map_value_t *v);
 
 #endif // MAP_H

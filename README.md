@@ -13,20 +13,23 @@ What you can do with this program is very similar to what you can do with `xargs
 ## Usage
 
 ```bash
-Usage: map [options] <value-source> [--] [cmd]
+Usage: map [options] <value-source-modifier> [--] [cmd]
 
-Value sources (one required):
+Available value source modifiers:
      -v <static-value>          Static value to map to (implies -z)
 
      --value-file <file-path>   Read map value from file (implies -z)
 
-     --value-cmd                Use output from command as map value.
-                                Each mapped item will be appended to the command arguments list, unless -z is specified.
+     --value-cmd                Use output from command as map value (implies -z)
+                                Each mapped item will be appended to the command arguments list, unless -z is specified
 
 Optional arguments:
      -s <separator>             Separator character (default: '\n')
      -c <concatenator>          Concatenator character (default: same as separator)
      -z, --discard-input        Exclude input value from map output
+     -I <replstr>               Specifies a replacement pattern string. When used, it overrides -z.
+                                When the pattern is found in the map value, it is replaced with the current item from the input.
+
      -h, --help                 Show this help message
 ```
 
@@ -54,9 +57,31 @@ SOMETHING ELSE
 ## Map to a static value with a different concatenator
 
 ```bash
- echo "There\nare\nmany\n\lines\n\in\nthis\nfile." | ./map -v "SOMETHING ELSE" -c,
+echo "There\nare\nmany\n\lines\n\in\nthis\nfile." | ./map -v "SOMETHING ELSE" -c,
 SOMETHING ELSE,SOMETHING ELSE,SOMETHING ELSE,SOMETHING ELSE,SOMETHING ELSE,SOMETHING ELSE,SOMETHING ELSE,
 ```
+
+## Map using a pattern string
+
+You can use `-I` to specify a pattern string that will be replaced with the incoming input value.
+
+```bash
+echo "line1\nline2\nline3" | map -I {} --value-cmd -- echo -n 'This is {}'
+This is line1
+This is line2
+This is line3
+```
+
+Or directly using a static map value, without having to run `echo`:
+
+```bash
+echo "line1\nline2\nline3" | ./map -I {} -v "This is {}"
+This is line1
+This is line2
+This is line3
+```
+
+`-I` also supports the `--value-file` option, meaning it can replace on the fly a map value coming from a file.
 
 ## Other usage
 

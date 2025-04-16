@@ -8,18 +8,18 @@
 #include <errno.h>
 
 void print_usage(char *argv[]) {
-    fprintf(stderr, "Usage: %s [options] <value-source> [--] [cmd]\n\n", argv[0]);
-    fprintf(stderr, "Value sources (one required):\n");
+    fprintf(stderr, "Usage: %s [options] <value-source-modifier> [--] [cmd]\n\n", argv[0]);
+    fprintf(stderr, "Available value source modifiers:\n");
     fprintf(stderr, "     -v <static-value>          Static value to map to (implies -z)\n\n");
     fprintf(stderr, "     --value-file <file-path>   Read map value from file (implies -z)\n\n");
-    fprintf(stderr, "     --value-cmd                Use output from command as map value.\n");
+    fprintf(stderr, "     --value-cmd                Use output from command as map value (implies -z)\n");
     fprintf(stderr, "                                Each mapped item will be appended to the command arguments list, unless -z is specified\n");
     fprintf(stderr, "\nOptional arguments:\n");
     fprintf(stderr, "     -s <separator>             Separator character (default: '\\n')\n");
     fprintf(stderr, "     -c <concatenator>          Concatenator character (default: same as separator)\n");
     fprintf(stderr, "     -z, --discard-input        Exclude input value from map output\n");
     fprintf(stderr, "     -I <replstr>               Specifies a replacement pattern string. When used, it overrides -z.\n");
-    fprintf(stderr,"                                 When the pattern is found in the map value, it is replaced with the current item from the input.\n\n");
+    fprintf(stderr, "                                When the pattern is found in the map value, it is replaced with the current item from the input.\n\n");
     fprintf(stderr, "     -h, --help                 Show this help message\n");
 }
 

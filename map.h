@@ -4,36 +4,49 @@
 #include "config.h"
 
 typedef struct {
+    /* stream holding the map value (if not in msource) */
     FILE *fsource;
+
+    /* pointer to the map value in memory (if not in fsource) */
     const char *msource;
+
+    /* length of the map value (if not msource) */
     size_t mlen;
+
+    /* tracks the last byte from msource written to the destination */
     size_t pos;
-} map_value_source_t;
+
+    /* the item to map */
+    char *item;
+} map_ctx_t;
 
 
-map_value_source_t new_map_value_source();
+map_ctx_t new_map_ctx();
 
 /*
- * Copies at most max_len bytes of src into dst.
- * src must have been loaded using mvload.
+    Copies at most max_len bytes of src into dst.
+    Any occurrences of config->replstr will be replaced with src->item
+    if both are present.
+
+    note: src must have been initialized using mvload.
  */
-size_t mvread(char *dst, size_t max_len, const map_config_t *config, map_value_source_t *src);
+size_t mvread(char *dst, size_t max_len, const map_config_t *config, map_ctx_t *src);
 
 /*
  * Returns 1 if the source v has been consumed fully.
  */
-int mveof(const map_config_t *config, const map_value_source_t *v);
+int mveof(const map_config_t *config, const map_ctx_t *v);
 
 /*
  * Returns 1 if the underlying source v stream reports an error. 
  * Returns 0 in all other cases.
  */
-int mverr(const map_config_t *config, const map_value_source_t *v);
+int mverr(const map_config_t *config, const map_ctx_t *v);
 
 /*
  * Closes any stream associated with v and resets the internal offset.
  */
-void mvclose(const map_config_t *config, map_value_source_t *v);
+void mvclose(const map_config_t *config, map_ctx_t *v);
 
 /*
  * Resets the value source so that the next read will start from the beginning
@@ -46,13 +59,13 @@ void mvclose(const map_config_t *config, map_value_source_t *v);
  * 
  * You should use mvclose if you do not plan to read from v again.
  */
-void mvreset(const map_config_t *config, map_value_source_t *v);
+void mvreset(const map_config_t *config, map_ctx_t *v);
 
 /*
  * Loads the value source as per the type specified in config.
  * Exits the program upon failure or validation issue.
  */
 
-void mvload(const map_config_t *config, map_value_source_t *source);
+void mvload(const map_config_t *config, map_ctx_t *source);
 
 #endif // MAP_H

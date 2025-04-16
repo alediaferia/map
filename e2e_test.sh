@@ -5,6 +5,12 @@
 echo "Compiling the program..."
 make
 
+# Check if make was successful
+if [ $? -ne 0 ]; then
+    echo "Compilation failed"
+    exit 1
+fi
+
 # Colors for test results
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -84,7 +90,11 @@ run_test "Basic file value" "./map --discard-input --value-file test_file.txt" "
 run_test "Basic command value" "./map --discard-input --value-cmd -- echo -n 'cmd output'" "cmd output\ncmd output\n" "line1\nline2\n"
 
 # Test with command value passing input item through
-run_test "Basic command value" "./map --value-cmd -- echo -n 'cmd output'" "cmd output line1\ncmd output line2\n" "line1\nline2\n"
+run_test "Basic command value with item pass through" "./map --value-cmd -- echo -n 'cmd output'" "cmd output line1\ncmd output line2\n" "line1\nline2\n"
+
+# Test with replacement string
+run_test "Basic command value with replacement string" "./map -I {} --value-cmd -- echo -n 'This is {}'" "This is line1\nThis is line2\nThis is line3\n" "line1\nline2\nline3"
+run_test "Static value with replacement string" "./map -I {} -v 'Hello {}'" "Hello World\nHello People\n" "World\nPeople"
 
 # -----------------
 # Custom Separator/Concatenator Tests

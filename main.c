@@ -48,7 +48,7 @@ int main(int argc, char *argv[]) {
 
     size_t bytes_read;
     size_t obuffer_pos = 0;
-    map_value_source_t value = new_map_value_source();
+    map_ctx_t map_ctx = new_map_ctx();
 
     /*
         read from stdin into the buffer
@@ -63,7 +63,6 @@ int main(int argc, char *argv[]) {
         size_t i = 0;
         int mapflag = 0;
         int prev_spos = 0;
-        char *item = NULL;
 
         for (; i < bytes_read; i++) {
             domap:
@@ -80,22 +79,18 @@ int main(int argc, char *argv[]) {
                     continue; // move to the next item;
                 } else {
                     /* save the current item (to be used if referenced in the output) */
-                    item = calloc(ilen + 1, sizeof(char));
-                    if (item == NULL) {
+                    map_ctx.item = calloc(ilen + 1, sizeof(char));
+                    if (map_ctx.item == NULL) {
                         fprintf(stderr, "Error: unable to allocate memory (%zu bytes): %s. Aborting\n", ilen, strerror(errno));
                         exit(EXIT_FAILURE);
                     }
-                    memcpy(item, buffer + prev_spos, ilen * sizeof(char));
-
-                    if (map_config.stripinput_flag == 0 && map_config.source_type == MAP_VALUE_SOURCE_CMD) {
-                        map_config.cmd_argv[map_config.cmd_argc - 1] = item;
-                    }
+                    memcpy(map_ctx.item, buffer + prev_spos, ilen * sizeof(char));
 
                     prev_spos = i + 1;
                 }
 
                 // load the map value
-                mvload(&map_config, &value);
+                mvload(&map_config, &map_ctx);
                 size_t available = bufsize - obuffer_pos;
                 while (1) {
                     if (available <= 0) {
@@ -103,16 +98,21 @@ int main(int argc, char *argv[]) {
                         bufflush(obuffer, bufsize, stdout);
                         obuffer_pos = 0;
                         available = bufsize;
+
+                        if (available == 0) {
+                            fprintf(stderr, "Error: no output space available.\n");
+                            exit(EXIT_FAILURE);
+                        }
                     }
 
-                    size_t mapped = mvread(obuffer + obuffer_pos, available, &map_config, &value);
+                    size_t mapped = mvread(obuffer + obuffer_pos, available, &map_config, &map_ctx);
                     available -= mapped;
                     obuffer_pos += mapped;
-                    if (mverr(&map_config, &value) > 0) {
+                    if (mverr(&map_config, &map_ctx) > 0) {
                         fprintf(stderr, "Unable to write map value\n");
                         exit(EXIT_FAILURE);
-                    } else if (mveof(&map_config, &value) > 0) {
-                        mvreset(&map_config, &value);
+                    } else if (mveof(&map_config, &map_ctx) > 0) {
+                        mvreset(&map_config, &map_ctx);
                         break; // we have mapped the value fully, so can break
                     }
                 } // map value writing cycle
@@ -127,12 +127,10 @@ int main(int argc, char *argv[]) {
                     obuffer[obuffer_pos++] = map_config.concatenator;
                 }
             }
-            if (item != NULL) {
-                free(item);
-                item = NULL;
-                if (map_config.stripinput_flag == 0) {
-                    map_config.cmd_argv[map_config.cmd_argc - 1] = NULL;
-                }
+
+            if (map_ctx.item != NULL) {
+                free(map_ctx.item);
+                map_ctx.item = NULL;
             }
         }
 
@@ -161,7 +159,7 @@ int main(int argc, char *argv[]) {
 
     free(buffer);
     free(obuffer);
-    mvclose(&map_config, &value);
+    mvclose(&map_config, &map_ctx);
 
     exit(EXIT_SUCCESS);
 }

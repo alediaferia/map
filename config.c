@@ -14,7 +14,8 @@ map_config_t new_map_config() {
         MAP_VALUE_SOURCE_UNSPECIFIED,
         0,
         NULL,
-        0
+        0,
+        NULL
     };
 }
 

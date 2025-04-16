@@ -8,16 +8,18 @@
 #include <errno.h>
 
 void print_usage(char *argv[]) {
-    fprintf(stderr, "Usage: %s [options] <value-source> [--] [cmd]\n\n", argv[0]);
-    fprintf(stderr, "Value sources (one required):\n");
+    fprintf(stderr, "Usage: %s [options] <value-source-modifier> [--] [cmd]\n\n", argv[0]);
+    fprintf(stderr, "Available value source modifiers:\n");
     fprintf(stderr, "     -v <static-value>          Static value to map to (implies -z)\n\n");
     fprintf(stderr, "     --value-file <file-path>   Read map value from file (implies -z)\n\n");
-    fprintf(stderr, "     --value-cmd                Use output from command as map value.\n");
+    fprintf(stderr, "     --value-cmd                Use output from command as map value (implies -z)\n");
     fprintf(stderr, "                                Each mapped item will be appended to the command arguments list, unless -z is specified\n");
     fprintf(stderr, "\nOptional arguments:\n");
     fprintf(stderr, "     -s <separator>             Separator character (default: '\\n')\n");
     fprintf(stderr, "     -c <concatenator>          Concatenator character (default: same as separator)\n");
     fprintf(stderr, "     -z, --discard-input        Exclude input value from map output\n");
+    fprintf(stderr, "     -I <replstr>               Specifies a replacement pattern string. When used, it overrides -z.\n");
+    fprintf(stderr, "                                When the pattern is found in the map value, it is replaced with the current item from the input.\n\n");
     fprintf(stderr, "     -h, --help                 Show this help message\n");
 }
 
@@ -42,7 +44,7 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
         {0, 0, 0, 0}
     };
 
-    while ((opt = getopt_long(*argc, *argv, "zs:c:v:", long_options, NULL)) != -1) {
+    while ((opt = getopt_long(*argc, *argv, "zs:c:v:I:", long_options, NULL)) != -1) {
         switch (opt) {
             case 'v':
                 if (map_config->source_type == MAP_VALUE_SOURCE_CMD || map_config->source_type == MAP_VALUE_SOURCE_FILE) {
@@ -52,7 +54,6 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
                 }
                 map_config->vstatic = optarg;
                 map_config->source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
-                map_config->stripinput_flag = 1;
                 break;
             case 'f': /* --value-file option */
                 if (map_config->source_type == MAP_VALUE_SOURCE_CMD || map_config->source_type == MAP_VALUE_SOURCE_CMDLINE_ARG) {
@@ -68,6 +69,10 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
                 break;
             case 'r': /* --value-cmd */
                 map_config->source_type = MAP_VALUE_SOURCE_CMD;
+                break;
+            case 'I': /* -I <replstr> */
+                map_config->replstr = optarg;
+                map_config->stripinput_flag = 0;
                 break;
             case 's':
                 _parse_single_char_arg(optarg, &(map_config->separator), opt, *argv);
@@ -88,20 +93,7 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
     *argv += optind;
 
     if (map_config->source_type == MAP_VALUE_SOURCE_CMD) {
-        if (map_config->stripinput_flag == 0) {
-            /* making room for one more input argument */
-            char **argve = calloc((*argc) + 2, sizeof(char*));
-            if (argve == NULL) {
-                fprintf(stderr, "Error: unable to allocate memory: %s\n", strerror(errno));
-                exit(EXIT_FAILURE);
-            }
-            memcpy(argve, *argv, (*argc) * sizeof(char*));
-
-            map_config->cmd_argc = (*argc) + 1;
-            map_config->cmd_argv = argve;
-        } else {
-            map_config->cmd_argc = *argc;
-            map_config->cmd_argv = *argv;
-        }
+        map_config->cmd_argc = *argc;
+        map_config->cmd_argv = *argv;
     }
 }

@@ -1,8 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>
 
 #include "config.h"
+#include "buffers.h"
+#include "strings.h"
+
+#include "test_map.h"
+#include "test_strings.h"
 
 void test_example(void) {
     // Test case example
@@ -19,7 +25,10 @@ int main(void) {
     // Add test cases here
     test_example();
     test_bufsize();
+
+    test_map();
+    test_strings();
     
-    printf("\x1b[32mAll tests passed!\x1b[0m\n");
+    printf("\x1b[32mAll tests PASSED\x1b[0m\n");
     return 0;
 }

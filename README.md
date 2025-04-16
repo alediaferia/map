@@ -20,7 +20,7 @@ Available value source modifiers:
 
      --value-file <file-path>   Read map value from file (implies -z)
 
-     --value-cmd                Use output from command as map value (implies -z)
+     --value-cmd                Use output from command as map value
                                 Each mapped item will be appended to the command arguments list, unless -z is specified
 
 Optional arguments:

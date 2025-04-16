@@ -12,7 +12,7 @@ void print_usage(char *argv[]) {
     fprintf(stderr, "Available value source modifiers:\n");
     fprintf(stderr, "     -v <static-value>          Static value to map to (implies -z)\n\n");
     fprintf(stderr, "     --value-file <file-path>   Read map value from file (implies -z)\n\n");
-    fprintf(stderr, "     --value-cmd                Use output from command as map value (implies -z)\n");
+    fprintf(stderr, "     --value-cmd                Use output from command as map value\n");
     fprintf(stderr, "                                Each mapped item will be appended to the command arguments list, unless -z is specified\n");
     fprintf(stderr, "\nOptional arguments:\n");
     fprintf(stderr, "     -s <separator>             Separator character (default: '\\n')\n");

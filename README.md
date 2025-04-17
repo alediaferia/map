@@ -1,12 +1,12 @@
 # map
 
-map is a command line utility that maps input content to an arbitrary value.
-
-At the moment, map reads the input data from standard input only.
+**map** is a command line utility that maps input content to an arbitrary value.
 
 The map value can be retrieved from a file, specified statically from the command line, or be the result of a command invocation.
 
-Incoming input is split by a 1-character separator (defaults to `\n`) and concatenated back (the concatenator can be customized).
+Incoming input is split by a 1-character separator (`\n` by default) and concatenated back (concatenator and separator can be both customized).
+
+map supports replacing patterns when mapping input to output (see the `-I` option, [here](#usage) or [here](#map-using-a-pattern-string)).
 
 What you can do with this program is very similar to what you can do with `xargs`.
 
@@ -86,6 +86,12 @@ This is line3
 ## Other usage
 
 Check `e2e_test.sh` for additional use cases.
+
+## Limitations
+
+* At the moment, map reads the input data from standard input only.
+* Separator and concatenator are limited to 1 character currently.
+* Input and output is currently limited to stdin/stdout (e.g. you need to pipe content in/out if you want to act on files)
 
 ## Development
 

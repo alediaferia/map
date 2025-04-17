@@ -7,8 +7,10 @@
 #include <string.h>
 #include <sys/mman.h>
 
-char** _map_replcmdargs(const char *replstr, const char *v, int argc, char *argv[]);
-void _mvloadcmd(const map_config_t *config, map_value_t *v);
+char** _map_repl_argv(const char *replstr, const char *v, int argc, char *argv[]);
+void _map_vload_src_c(const map_config_t *config, map_value_t *v);
+void _map_vload_src_f(const map_config_t *config, map_value_t *v);
+void _map_vload_src_a(const map_config_t *config, map_value_t *v);
 
 void map_ctx_init(map_value_t *v) {
     memset(v, 0, sizeof(map_value_t));
@@ -100,11 +102,11 @@ void map_vclose(const map_config_t *config, map_value_t *v) {
     }
 }
 
-void _mvloadcmd(const map_config_t *config, map_value_t *v) {
+void _map_vload_src_c(const map_config_t *config, map_value_t *v) {
     char **p_argv = config->cmd_argv;
     int argc = config->cmd_argc;
     if (config->replstr) {
-        p_argv = _map_replcmdargs(config->replstr, v->item, config->cmd_argc, config->cmd_argv);
+        p_argv = _map_repl_argv(config->replstr, v->item, config->cmd_argc, config->cmd_argv);
     } else if (config->stripinput_flag == 0) {
         /*
             If we are not stripping the input item,
@@ -138,19 +140,26 @@ void _mvloadcmd(const map_config_t *config, map_value_t *v) {
 }
 
 void _map_vload_src_f(const map_config_t *config, map_value_t *v) {
+    v->msource = mmap_file(config->vfpath, &(v->mlen));
     if (v->msource == NULL) {
-        v->msource = mmap_file(config->vfpath, &(v->mlen));
-        if (v->msource == NULL) {
-            exit(EXIT_FAILURE);
-        }
-
-        if (config->replstr) {
-            const char *mmapped = v->msource;
-            v->msource = strreplall(v->msource, config->replstr, v->item);
-            munmap((void*)mmapped, v->mlen);
-            v->mlen = strlen(v->msource);
-        }
+        exit(EXIT_FAILURE);
     }
+
+    if (config->replstr) {
+        const char *mmapped = v->msource;
+        v->msource = strreplall(v->msource, config->replstr, v->item);
+        munmap((void*)mmapped, v->mlen);
+        v->mlen = strlen(v->msource);
+    }
+}
+
+void _map_vload_src_a(const map_config_t *config, map_value_t *v) {
+    if (config->replstr) {
+        v->msource = strreplall(config->vstatic, config->replstr, v->item);
+    } else {
+        v->msource = config->vstatic;
+    }
+    v->mlen = strlen(v->msource);
 }
 
 void map_vload(const map_config_t *config, map_value_t *v) {
@@ -159,30 +168,24 @@ void map_vload(const map_config_t *config, map_value_t *v) {
             fprintf(stderr, "Error: map value unspecified\n");
             exit(EXIT_FAILURE);
         case MAP_VALUE_SOURCE_FILE:
-            _map_vload_src_f(config, v);
+            if (v->msource == NULL) {
+                _map_vload_src_f(config, v);
+            }
             break;
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
             if (v->msource == NULL) {
-                if (config->replstr) {
-                    v->msource = strreplall(config->vstatic, config->replstr, v->item);
-                } else {
-                    v->msource = config->vstatic;
-                }
-                v->mlen = strlen(v->msource);
+                _map_vload_src_a(config, v);
             }
             break;
         case MAP_VALUE_SOURCE_CMD:
             if (v->fsource == NULL) {
-                _mvloadcmd(config, v);
+                _map_vload_src_c(config, v);
             }
             break;
     }
 }
 
-/*
-    Replaces the command line args with replstr if set and if applicable.
-*/
-char** _map_replcmdargs(const char *replstr, const char *v, int argc, char *argv[]) {
+char** _map_repl_argv(const char *replstr, const char *v, int argc, char *argv[]) {
     char **dst = calloc(argc, sizeof(char*));
     if (!dst) {
         perror("Unable to allocate memory");

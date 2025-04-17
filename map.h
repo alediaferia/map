@@ -3,7 +3,7 @@
 
 #include "config.h"
 
-typedef struct {
+typedef struct map_value {
     union {
         /* stream holding the map value (if not in msource) */
         FILE *fsource;
@@ -22,7 +22,7 @@ typedef struct {
     char *item;
 } map_value_t;
 
-void map_ctx_init(map_value_t *ctx);
+void map_ctx_init(map_value_t *v);
 
 /*
     Copies at most max_len bytes of src into dst.
@@ -66,7 +66,6 @@ void map_vreset(const map_config_t *config, map_value_t *v);
  * Loads the value source as per the type specified in config.
  * Exits the program upon failure or validation issue.
  */
-
 void map_vload(const map_config_t *config, map_value_t *v);
 
 #endif // MAP_H

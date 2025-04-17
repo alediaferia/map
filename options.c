@@ -47,32 +47,32 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
     while ((opt = getopt_long(*argc, *argv, "zs:c:v:I:", long_options, NULL)) != -1) {
         switch (opt) {
             case 'v':
-                if (map_config->source_type == MAP_VALUE_SOURCE_CMD || map_config->source_type == MAP_VALUE_SOURCE_FILE) {
+                if (map_config->vsource_t == MAP_VALUE_SOURCE_CMD || map_config->vsource_t == MAP_VALUE_SOURCE_FILE) {
                     fprintf(stderr, "-v: Error: you can only specify one value mapping option (-v or --value-file or --value-cmd)\n");
                     print_usage(*argv);
                     exit(EXIT_FAILURE);
                 }
                 map_config->vstatic = optarg;
-                map_config->source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
+                map_config->vsource_t = MAP_VALUE_SOURCE_CMDLINE_ARG;
                 break;
             case 'f': /* --value-file option */
-                if (map_config->source_type == MAP_VALUE_SOURCE_CMD || map_config->source_type == MAP_VALUE_SOURCE_CMDLINE_ARG) {
+                if (map_config->vsource_t == MAP_VALUE_SOURCE_CMD || map_config->vsource_t == MAP_VALUE_SOURCE_CMDLINE_ARG) {
                     fprintf(stderr, "--value-file: Error: you can only specify one value mapping option (-v or --value-file or --value-cmd)\n");
                     print_usage(*argv);
                     exit(EXIT_FAILURE);
                 }
                 map_config->vfpath = optarg;
-                map_config->source_type = MAP_VALUE_SOURCE_FILE;
-                map_config->stripinput_flag = 1;
+                map_config->vsource_t = MAP_VALUE_SOURCE_FILE;
+                map_config->stripi_f = 1;
 
                 assert_faccessible(optarg);
                 break;
             case 'r': /* --value-cmd */
-                map_config->source_type = MAP_VALUE_SOURCE_CMD;
+                map_config->vsource_t = MAP_VALUE_SOURCE_CMD;
                 break;
             case 'I': /* -I <replstr> */
                 map_config->replstr = optarg;
-                map_config->stripinput_flag = 0;
+                map_config->stripi_f = 0;
                 break;
             case 's':
                 _parse_single_char_arg(optarg, &(map_config->separator), opt, *argv);
@@ -81,7 +81,7 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
                 _parse_single_char_arg(optarg, &(map_config->concatenator), opt, *argv);
                 break;
             case 'z':
-                map_config->stripinput_flag = 1;
+                map_config->stripi_f = 1;
                 break;
             case '?':
             default:
@@ -92,7 +92,7 @@ void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]
     *argc -= optind;
     *argv += optind;
 
-    if (map_config->source_type == MAP_VALUE_SOURCE_CMD) {
+    if (map_config->vsource_t == MAP_VALUE_SOURCE_CMD) {
         map_config->cmd_argc = *argc;
         map_config->cmd_argv = *argv;
     }

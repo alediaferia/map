@@ -1,11 +1,11 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O2
+CFLAGS = -Wall -Wextra -O3 -pedantic -std=c17
 TARGET = map
 
 CMD_SRCS = main.c
 
 # Source files and object files
-SRCS = cmd.c config.c files.c options.c map.c buffers.c strings.c
+SRCS = cmd.c files.c options.c map.c buffers.c strings.c
 OBJS = $(SRCS:.c=.o) $(CMD_SRCS:.c=.o)
 
 # Test source and object

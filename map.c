@@ -7,18 +7,27 @@
 #include <string.h>
 #include <sys/mman.h>
 
+#define DEFAULT_SEPARATOR_VALUE '\n'
+
 char** _map_repl_argv(const char *replstr, const char *v, int argc, char *argv[]);
 void _map_vload_src_c(const map_config_t *config, map_value_t *v);
 void _map_vload_src_f(const map_config_t *config, map_value_t *v);
 void _map_vload_src_a(const map_config_t *config, map_value_t *v);
 
-void map_ctx_init(map_value_t *v) {
+void map_value_init(map_value_t *v) {
     memset(v, 0, sizeof(map_value_t));
+}
+
+void map_config_init(map_config_t *c) {
+    memset(c, 0, sizeof(map_config_t));
+
+    c->vsource_t = MAP_VALUE_SOURCE_UNSPECIFIED;
+    c->separator = DEFAULT_SEPARATOR_VALUE;
 }
 
 size_t map_vread(char *dst, size_t max_len, const map_config_t *config, map_value_t *v) {
     size_t len;
-    switch (config->source_type) {
+    switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_CMD:
             /* relying on fsource's internal offset - no need to update ours */
             return fread(dst, sizeof(char), max_len, v->fsource);
@@ -34,7 +43,7 @@ size_t map_vread(char *dst, size_t max_len, const map_config_t *config, map_valu
 }
 
 int map_veof(const map_config_t *config, const map_value_t *v) {
-    switch (config->source_type) {
+    switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_CMD:
             return feof(v->fsource);
         case MAP_VALUE_SOURCE_FILE:
@@ -45,7 +54,7 @@ int map_veof(const map_config_t *config, const map_value_t *v) {
 }
 
 int map_verr(const map_config_t *config, const map_value_t *v) {
-    switch (config->source_type) {
+    switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_CMD:
             return ferror(v->fsource);
         default:
@@ -54,7 +63,7 @@ int map_verr(const map_config_t *config, const map_value_t *v) {
 }
 
 void map_vreset(const map_config_t *config, map_value_t *v) {
-    switch (config->source_type) {
+    switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_CMD:
             pclose(v->fsource);
             v->fsource = NULL;
@@ -72,7 +81,7 @@ void map_vreset(const map_config_t *config, map_value_t *v) {
 }
 
 void map_vclose(const map_config_t *config, map_value_t *v) {
-    switch (config->source_type) {
+    switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_CMD:
             pclose(v->fsource);
             v->fsource = NULL;
@@ -107,7 +116,7 @@ void _map_vload_src_c(const map_config_t *config, map_value_t *v) {
     int argc = config->cmd_argc;
     if (config->replstr) {
         p_argv = _map_repl_argv(config->replstr, v->item, config->cmd_argc, config->cmd_argv);
-    } else if (config->stripinput_flag == 0) {
+    } else if (config->stripi_f == 0) {
         /*
             If we are not stripping the input item,
             then we will be passing the input item as an additional
@@ -134,7 +143,7 @@ void _map_vload_src_c(const map_config_t *config, map_value_t *v) {
             free(p_argv[i]);
         }
         free(p_argv);
-    } else if (config->stripinput_flag == 0) {
+    } else if (config->stripi_f == 0) {
         free(p_argv);
     }
 }
@@ -163,7 +172,7 @@ void _map_vload_src_a(const map_config_t *config, map_value_t *v) {
 }
 
 void map_vload(const map_config_t *config, map_value_t *v) {
-    switch (config->source_type) {
+    switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_UNSPECIFIED:
             fprintf(stderr, "Error: map value unspecified\n");
             exit(EXIT_FAILURE);

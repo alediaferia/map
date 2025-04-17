@@ -41,7 +41,7 @@ void test__map_replcmdargs_multi_occurs(void) {
 
 void test_mvload_cmdline_replstr(void) {
     map_config_t config;
-    config.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
+    config.vsource_t = MAP_VALUE_SOURCE_CMDLINE_ARG;
     config.replstr = "@@@";
     config.vstatic = "Hello @@@!";
 
@@ -58,7 +58,7 @@ void test_mvload_cmdline_replstr(void) {
 
 void test_mvclose_cmdline_replstr(void) {
     map_config_t config;
-    config.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
+    config.vsource_t = MAP_VALUE_SOURCE_CMDLINE_ARG;
     config.replstr = "@@@";
     config.vstatic = "Hello @@@!";
 
@@ -127,7 +127,7 @@ size_t _count_occurrences(const char *str, const char *substr, size_t max_length
 void test_perf_mvload_bigfile_replstr(void) {
     printf("====== Begin perf. test - map_vload bigfile replstr ======\n");
     map_config_t config;
-    config.source_type = MAP_VALUE_SOURCE_FILE;
+    config.vsource_t = MAP_VALUE_SOURCE_FILE;
 
     const char replstr[] = "@@@@";
     const char pattern[] = "String pattern with substring @@@@ to replace";

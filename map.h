@@ -1,7 +1,7 @@
 #ifndef MAP_H
 #define MAP_H
 
-#include "config.h"
+#include <stdio.h>
 
 typedef struct map_value {
     union {
@@ -22,7 +22,35 @@ typedef struct map_value {
     char *item;
 } map_value_t;
 
-void map_ctx_init(map_value_t *v);
+enum map_vsource {
+    MAP_VALUE_SOURCE_UNSPECIFIED = -1,
+    MAP_VALUE_SOURCE_CMDLINE_ARG = 0,
+    MAP_VALUE_SOURCE_FILE,
+    MAP_VALUE_SOURCE_CMD
+};
+
+typedef struct map_config {
+    union {
+        const char *vstatic;
+        const char *vfpath;
+    };
+
+    char separator;
+    char concatenator;
+
+    enum map_vsource vsource_t;
+
+    int cmd_argc;
+    char **cmd_argv;
+
+    /* strip input flag */
+    int stripi_f;
+
+    const char *replstr;
+} map_config_t;
+
+void map_value_init(map_value_t *v);
+void map_config_init(map_config_t *c);
 
 /*
     Copies at most max_len bytes of src into dst.

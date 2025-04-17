@@ -1,11 +1,7 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <assert.h>
-#include <string.h>
 
-#include "config.h"
 #include "buffers.h"
-#include "strings.h"
 
 #include "test_map.h"
 #include "test_strings.h"

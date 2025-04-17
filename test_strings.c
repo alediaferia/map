@@ -1,7 +1,6 @@
 #include "test_strings.h"
 #include "strings.h"
 
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
@@ -16,7 +15,7 @@ void test_strreplall(void) {
 
     assert(strcmp(strreplall_r, expected) == 0);
 
-    free(strreplall_r);
+    free((void*)strreplall_r);
 }
 
 void test_strreplall_nooccurs(void) {
@@ -27,7 +26,7 @@ void test_strreplall_nooccurs(void) {
     const char *output = strreplall(src, replstr, v);
     assert(strcmp(output, src) == 0);
 
-    free(output);
+    free((void*)output);
 }
 
 void test_strings(void) {

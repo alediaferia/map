@@ -6,6 +6,6 @@
 
 void bufflush(const char *buf, size_t len, FILE *dst);
 
-size_t calc_iobufsize();
+size_t calc_iobufsize(void);
 
 #endif // BUFFERS_H

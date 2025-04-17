@@ -1,19 +1,18 @@
+#include <stdlib.h>
 #include <string.h>
 #include <errno.h>
 
 #include "buffers.h"
-#include "config.h"
 #include "options.h"
-#include "cmd.h"
-#include "files.h"
 #include "map.h"
 
 int main(int argc, char *argv[]) {
-    map_config_t map_config = new_map_config();
+    map_config_t map_config;
+    map_config_init(&map_config);
     load_config_from_options(&map_config, &argc, &argv);
 
     /* Handle value from file if specified */
-    if (map_config.source_type == MAP_VALUE_SOURCE_UNSPECIFIED) {
+    if (map_config.vsource_t == MAP_VALUE_SOURCE_UNSPECIFIED) {
         /* Neither -v nor --value-file nor --value-cmd specified */
         fprintf(stderr, "Error: Either -v or --value-file or --value-cmd must be explicitly specified\n");
         print_usage(argv);
@@ -49,8 +48,8 @@ int main(int argc, char *argv[]) {
     size_t bytes_read;
     size_t obuffer_pos = 0;
 
-    map_value_t map_ctx;
-    map_ctx_init(&map_ctx);
+    map_value_t map_value;
+    map_value_init(&map_value);
 
     /*
         read from stdin into the buffer
@@ -81,18 +80,18 @@ int main(int argc, char *argv[]) {
                     continue; // move to the next item;
                 } else {
                     /* save the current item (to be used if referenced in the output) */
-                    map_ctx.item = calloc(ilen + 1, sizeof(char));
-                    if (map_ctx.item == NULL) {
+                    map_value.item = calloc(ilen + 1, sizeof(char));
+                    if (map_value.item == NULL) {
                         fprintf(stderr, "Error: unable to allocate memory (%zu bytes): %s. Aborting\n", ilen, strerror(errno));
                         exit(EXIT_FAILURE);
                     }
-                    memcpy(map_ctx.item, buffer + prev_spos, ilen * sizeof(char));
+                    memcpy(map_value.item, buffer + prev_spos, ilen * sizeof(char));
 
                     prev_spos = i + 1;
                 }
 
                 // load the map value
-                map_vload(&map_config, &map_ctx);
+                map_vload(&map_config, &map_value);
                 size_t available = bufsize - obuffer_pos;
                 while (1) {
                     if (available <= 0) {
@@ -107,14 +106,14 @@ int main(int argc, char *argv[]) {
                         }
                     }
 
-                    size_t mapped = map_vread(obuffer + obuffer_pos, available, &map_config, &map_ctx);
+                    size_t mapped = map_vread(obuffer + obuffer_pos, available, &map_config, &map_value);
                     available -= mapped;
                     obuffer_pos += mapped;
-                    if (map_verr(&map_config, &map_ctx) > 0) {
+                    if (map_verr(&map_config, &map_value) > 0) {
                         fprintf(stderr, "Unable to write map value\n");
                         exit(EXIT_FAILURE);
-                    } else if (map_veof(&map_config, &map_ctx) > 0) {
-                        map_vreset(&map_config, &map_ctx);
+                    } else if (map_veof(&map_config, &map_value) > 0) {
+                        map_vreset(&map_config, &map_value);
                         break; // we have mapped the value fully, so can break
                     }
                 } // map value writing cycle
@@ -130,9 +129,9 @@ int main(int argc, char *argv[]) {
                 }
             }
 
-            if (map_ctx.item != NULL) {
-                free(map_ctx.item);
-                map_ctx.item = NULL;
+            if (map_value.item != NULL) {
+                free(map_value.item);
+                map_value.item = NULL;
             }
         }
 
@@ -161,7 +160,7 @@ int main(int argc, char *argv[]) {
 
     free(buffer);
     free(obuffer);
-    map_vclose(&map_config, &map_ctx);
+    map_vclose(&map_config, &map_value);
 
     exit(EXIT_SUCCESS);
 }

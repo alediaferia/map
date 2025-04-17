@@ -1,7 +1,7 @@
 #ifndef OPTIONS_H
 #define OPTIONS_H
 
-#include "config.h"
+#include "map.h"
 
 void load_config_from_options(
     map_config_t *map_config,

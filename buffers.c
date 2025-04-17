@@ -19,7 +19,7 @@ void bufflush(const char *buf, size_t len, FILE *dst) {
     }
 }
 
-size_t calc_iobufsize() {
+size_t calc_iobufsize(void) {
     struct stat s;
 
     int fd = fcntl(STDIN_FILENO, F_DUPFD, 0);

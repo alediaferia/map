@@ -3,7 +3,7 @@
 
 #include "map.h"
 
-void load_config_from_options(
+void map_config_load_from_args(
     map_config_t *map_config,
     int *argc,
     char **argv[]

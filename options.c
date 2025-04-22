@@ -5,7 +5,6 @@
 #include <stdlib.h>
 #include <getopt.h>
 #include <string.h>
-#include <errno.h>
 
 void print_usage(char *argv[]) {
     fprintf(stderr, "Usage: %s [options] <value-source-modifier> [--] [cmd]\n\n", argv[0]);
@@ -33,7 +32,7 @@ void _parse_single_char_arg(char *arg, char *concat_arg, char opt_id, char *argv
     *concat_arg = arg[0];
 }
 
-void load_config_from_options(map_config_t *map_config, int *argc, char **argv[]) {
+void map_config_load_from_args(map_config_t *map_config, int *argc, char **argv[]) {
     int opt;
 
     /* Define long options */

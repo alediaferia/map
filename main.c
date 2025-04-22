@@ -9,7 +9,7 @@
 int main(int argc, char *argv[]) {
     map_config_t map_config;
     map_config_init(&map_config);
-    load_config_from_options(&map_config, &argc, &argv);
+    map_config_load_from_args(&map_config, &argc, &argv);
 
     /* Handle value from file if specified */
     if (map_config.vsource_t == MAP_VALUE_SOURCE_UNSPECIFIED) {

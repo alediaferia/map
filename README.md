@@ -1,16 +1,32 @@
 # map
 
-**map** is a command line utility that maps input content to an arbitrary value.
+A fast and efficient CLI tool for mapping and transforming input values to output.
 
-The map value can be retrieved from a file, specified statically from the command line, or be the result of a command invocation.
+## Features
 
-Incoming input is split by a 1-character separator (`\n` by default) and concatenated back (concatenator and separator can be both customized).
-
-map supports replacing patterns when mapping input to output (see the `-I` option, [here](#usage) or [here](#map-using-a-pattern-string)).
+- Configurable input/output separators
+- Multiple input sources support (stdin, files, commands)
+- Supports replacement patterns (see [here](#pattern-string))
+- Zero external dependencies
 
 What you can do with this program is very similar to what you can do with `xargs`.
 
 ## Usage
+
+```bash
+map [-s separator] [-c concatenator] (-v pattern | --value-file file | --value-cmd command)
+```
+
+### Options
+
+- `-s`: Input separator character (default: *newline*)
+- `-c`: Output concatenator character (default: same as separator)
+- `-v`: Specify a static map value to map each input item to. See `-I` for patterns support.
+- `--value-file`: Read map value from file
+- `--value-cmd`: Use command output as map value
+- `-I <replstr>`: Replace any occurrence of `replstr` in the map value with the incoming input item. See [here](#pattern-string) for more examples.
+
+Full usage screen:
 
 ```bash
 Usage: map [options] <value-source-modifier> [--] [cmd]
@@ -33,7 +49,11 @@ Optional arguments:
      -h, --help                 Show this help message
 ```
 
-## Map to the result of a command
+## Usage examples
+
+Some detailed examples here
+
+### Map to the result of a command
 
 ```bash
 echo -e "World\nKitty\n" | ./map --value-cmd -- echo -n 'Hello'   
@@ -41,7 +61,7 @@ Hello World
 Hello Kitty
 ```
 
-## Map to a static value by command line
+### Map to a static value by command line
 
 ```bash
 echo "There\nare\nmany\n\lines\n\in\nthis\nfile." | ./map -v "SOMETHING ELSE"
@@ -54,14 +74,14 @@ SOMETHING ELSE
 SOMETHING ELSE
 ```
 
-## Map to a static value with a different concatenator
+### Static value, change concatenator on the fly
 
 ```bash
 echo "There\nare\nmany\n\lines\n\in\nthis\nfile." | ./map -v "SOMETHING ELSE" -c,
 SOMETHING ELSE,SOMETHING ELSE,SOMETHING ELSE,SOMETHING ELSE,SOMETHING ELSE,SOMETHING ELSE,SOMETHING ELSE,
 ```
 
-## Map using a pattern string
+### Pattern string
 
 You can use `-I` to specify a pattern string that will be replaced with the incoming input value.
 
@@ -76,22 +96,35 @@ Or directly using a static map value, without having to run `echo`:
 
 ```bash
 echo "line1\nline2\nline3" | ./map -I {} -v "This is {}"
-This is line1
-This is line2
-This is line3
+# Output:
+# This is line1
+# This is line2
+# This is line3
+
+# String pattern and concatenator change on the fly
+echo "apple\nbanana" | map -c "," -I {} -v "Fruit: {}"
+# Output: Fruit: apple,Fruit: banana
 ```
 
 `-I` also supports the `--value-file` option, meaning it can replace on the fly a map value coming from a file.
 
-## Other usage
+### Other usage
 
 Check `e2e_test.sh` for additional use cases.
 
 ## Limitations
 
-* At the moment, map reads the input data from standard input only.
-* Separator and concatenator are limited to 1 character currently.
-* Input and output is currently limited to stdin/stdout (e.g. you need to pipe content in/out if you want to act on files)
+- At the moment, map reads the input data from standard input only.
+- Separator and concatenator are limited to 1 character currently.
+- Input and output is currently limited to stdin/stdout (e.g. you need to pipe content in/out if you want to act on files)
+
+## Building from source
+
+```bash
+git clone https://github.com/alediaferia/map.git
+cd map
+make
+```
 
 ## Development
 
@@ -100,3 +133,7 @@ This project is still experimental. The command line interface will surely chang
 There will likely be no stable release before adding support for referencing the input items in the map value (think `-I` in xargs).
 
 Incoming features also include the ability to map directly from/to files.
+
+## License
+
+map is released under the BSD-2-Clause license. You can find a copy of the license in this repository.

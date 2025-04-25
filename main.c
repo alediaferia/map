@@ -39,7 +39,7 @@ static char* bufalloc(size_t size) {
     char *buffer = calloc(size, sizeof(char));
     if (buffer == NULL) {
         fprintf(stderr, "Unable to allocate buffer. Check that your system has enough memory (%ld bytes)", size);
-	    exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
     }
 
     return buffer;
@@ -170,7 +170,15 @@ int main(int argc, char *argv[]) {
             */
             if (!feof(stdin)) {
                 size_t newsize = bufsize * 2;
-                buffer = realloc(buffer, newsize);
+                char *newbuf = realloc(buffer, newsize);
+                if (newbuf == NULL) {
+                    fprintf(stderr, "Failed to allocate memory: unable to extend input buffer. Aborting.\n");
+                    free(buffer);
+                    free(obuffer);
+                    map_vclose(&map_config, &map_value);
+                    exit(EXIT_FAILURE);
+                }
+                buffer = newbuf;
                 bytes_read += fread(buffer + bufsize, sizeof(char), newsize - bufsize, stdin);
                 bufsize = newsize;
                 goto domap;

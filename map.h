@@ -94,7 +94,7 @@ void map_vicpy(map_value_t *v, const char *src, size_t len);
 
     note: src must have been initialized using map_vload.
  */
-size_t map_vread(char *dst, size_t max_len, const map_config_t *config, map_value_t *v);
+size_t map_vread(char* dst, size_t max, const map_config_t* config, map_value_t* v);
 
 /*
  * Returns 1 if the source v has been consumed fully.

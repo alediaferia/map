@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O3 -pedantic -std=c17
+CFLAGS = -Wall -Wextra -O3 -pedantic -std=c17 -D_POSIX_C_SOURCE=200809L
 TARGET = map
 
 CMD_SRCS = main.c

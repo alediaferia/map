@@ -36,13 +36,14 @@
 #include <string.h>
 #include <errno.h>
 #include <sys/mman.h>
+#include <sys/param.h>
 
 #define DEFAULT_SEPARATOR_VALUE '\n'
 
 char** _map_repl_argv(const char *replstr, const char *v, int argc, char *argv[]);
-void _map_vload_src_c(const map_config_t *config, map_value_t *v);
-void _map_vload_src_f(const map_config_t *config, map_value_t *v);
-void _map_vload_src_a(const map_config_t *config, map_value_t *v);
+static inline void _map_vload_src_c(const map_config_t *config, map_value_t *v);
+static inline void _map_vload_src_f(const map_config_t *config, map_value_t *v);
+static inline void _map_vload_src_a(const map_config_t *config, map_value_t *v);
 
 void map_value_init(map_value_t *v) {
     memset(v, 0, sizeof(map_value_t));
@@ -55,15 +56,16 @@ void map_config_init(map_config_t *c) {
     c->separator = DEFAULT_SEPARATOR_VALUE;
 }
 
-size_t map_vread(char *dst, size_t max_len, const map_config_t *config, map_value_t *v) {
+size_t map_vread(char *dst, size_t max, const map_config_t *config, map_value_t *v) {
     size_t len;
     switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_CMD:
             /* relying on fsource's internal offset - no need to update ours */
-            return fread(dst, sizeof(char), max_len, v->fsource);
+            return fread(dst, sizeof(char), max, v->fsource);
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
         case MAP_VALUE_SOURCE_FILE:
-            len = strlcpy(dst, v->msource + v->pos, max_len);
+            len = MIN(strlen(v->msource + v->pos), max);
+            memcpy(dst, v->msource + v->pos, len);
             v->pos += len;
             return len;
         default:
@@ -95,15 +97,20 @@ int map_verr(const map_config_t *config, const map_value_t *v) {
 void map_vreset(const map_config_t *config, map_value_t *v) {
     switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_CMD:
-            pclose(v->fsource);
-            v->fsource = NULL;
+            if (v->fsource != NULL) {
+                pclose(v->fsource);
+                v->fsource = NULL;
+            }
             break;
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
-            if (config->replstr) {
+            if (v->msource != NULL) {
+                if (config->replstr) {
+                    free((void*)v->msource);
+                    v->msource = NULL;
+                }
                 v->pos = 0;
-                free((void*)v->msource);
-                v->msource = NULL;
             }
+            break;
         default:
             v->pos = 0;
             break;
@@ -113,15 +120,19 @@ void map_vreset(const map_config_t *config, map_value_t *v) {
 void map_vclose(const map_config_t *config, map_value_t *v) {
     switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_CMD:
-            pclose(v->fsource);
-            v->fsource = NULL;
+            if (v->fsource != NULL) {
+                pclose(v->fsource);
+                v->fsource = NULL;
+            }
             break;
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
-            v->pos = 0;
-            if (config->replstr) {
-                free((void*)v->msource);
+            if (v->msource != NULL) {
+                v->pos = 0;
+                if (config->replstr) {
+                    free((void*)v->msource);
+                }
+                v->msource = NULL;
             }
-            v->msource = NULL;
             break;
         case MAP_VALUE_SOURCE_FILE:
             v->pos = 0;
@@ -225,7 +236,7 @@ void map_vload(const map_config_t *config, map_value_t *v) {
 }
 
 char** _map_repl_argv(const char *replstr, const char *v, int argc, char *argv[]) {
-    char **dst = calloc(argc, sizeof(char*));
+    char **dst = calloc(argc + 1 /* execvp expects null-terminated array */, sizeof(char*));
     if (!dst) {
         perror("Unable to allocate memory");
         exit(EXIT_FAILURE);
@@ -239,7 +250,7 @@ char** _map_repl_argv(const char *replstr, const char *v, int argc, char *argv[]
             perror("Unable to allocate memory for arg");
             exit(EXIT_FAILURE);
         }
-        strncpy(arg, argv[i], len);
+        memcpy(arg, argv[i], len);
         if (i > 0) { /* do not replace the command */
             arg = (char*)strreplall(arg, replstr, v);
         }

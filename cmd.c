@@ -34,6 +34,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <fcntl.h>
 
 FILE* runcmd(int argc, char *argv[]) {
     if (argc == 0) {

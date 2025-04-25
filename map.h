@@ -82,6 +82,12 @@ void map_value_init(map_value_t *v);
 void map_config_init(map_config_t *c);
 
 /*
+ * Copies len bytes of the given src into v to be later used for mapping operations.
+ * The copied sequence of bytes will be null-terminated.
+ */
+void map_vicpy(map_value_t *v, const char *src, size_t len);
+
+/*
     Copies at most max_len bytes of src into dst.
     Any occurrences of config->replstr will be replaced with src->item
     if both are present.

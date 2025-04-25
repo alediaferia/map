@@ -34,6 +34,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 #include <sys/mman.h>
 
 #define DEFAULT_SEPARATOR_VALUE '\n'
@@ -246,4 +247,15 @@ char** _map_repl_argv(const char *replstr, const char *v, int argc, char *argv[]
     }
 
     return dst;
+}
+
+void map_vicpy(map_value_t *v, const char *src, size_t len) {
+    char *item = calloc(len + 1, sizeof(char));
+    if (item == NULL) {
+        fprintf(stderr, "Error: unable to allocate memory (%zu bytes): %s. Aborting\n", len, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+    memcpy(item, src, len * sizeof(char));
+
+    v->item = item;
 }

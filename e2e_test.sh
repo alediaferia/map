@@ -126,7 +126,7 @@ run_test "Large input" "./map --discard-input -v 'mapped'" "$expected_large_outp
 # -----------------
 
 # Test with missing value argument
-run_error_test "Missing value argument" "./map" "Either -v or --value-file or --value-cmd must be explicitly specified" ""
+run_error_test "Missing value argument" "./map" "One of -v, --value-file or --value-cmd must be explicitly specified" ""
 
 # Test with non-existent file
 run_error_test "Non-existent file" "./map --value-file nonexistent.txt" "Cannot open file" ""

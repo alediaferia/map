@@ -35,15 +35,7 @@
 #include "options.h"
 #include "map.h"
 
-static char* bufalloc(size_t size) {
-    char *buffer = calloc(size, sizeof(char));
-    if (buffer == NULL) {
-        fprintf(stderr, "Unable to allocate buffer. Check that your system has enough memory (%ld bytes)", size);
-        exit(EXIT_FAILURE);
-    }
-
-    return buffer;
-}
+#define FALLBACK_BUFFER_SIZE 4069
 
 static void init_from_opts(map_config_t *config, int *argc, char ***argv) {
     map_config_init(config);
@@ -67,11 +59,10 @@ int main(int argc, char *argv[]) {
     map_config_t map_config;
     init_from_opts(&map_config, &argc, &argv);
         
-    size_t bufsize = calc_iobufsize();
-    assert(bufsize > 0);
+    size_t bufsize = calc_iobufsize(BUF_STDIN, FALLBACK_BUFFER_SIZE);
 
     char *buffer = bufalloc(bufsize);
-    char *obuffer = bufalloc(bufsize);
+    char *obuffer = bufalloc(calc_iobufsize(BUF_STDOUT, FALLBACK_BUFFER_SIZE));
 
     /* 
         We are going to read from stdin to a buffer, for efficiency purposes.
@@ -118,38 +109,23 @@ int main(int argc, char *argv[]) {
                 }
 
                 map_vload(&map_config, &map_value);
-                size_t available = bufsize - obuffer_pos;
 
                 /* loop to write out the mapped value to the output buffer until done */
-                while (1) {
-                    if (available <= 0) {
-                        bufflush(obuffer, bufsize, stdout);
-                        obuffer_pos = 0;
-                        available = bufsize;
-                    }
+                while (map_veof(&map_config, &map_value) <= 0) {
+                    bufencap(obuffer, bufsize, &obuffer_pos, stdout);
 
-                    size_t mapped = map_vread(obuffer + obuffer_pos, available, &map_config, &map_value);
-                    available -= mapped;
+                    size_t mapped = map_vread(obuffer + obuffer_pos, bufsize - obuffer_pos, &map_config, &map_value);
                     obuffer_pos += mapped;
 
                     if (map_verr(&map_config, &map_value) > 0) {
                         fprintf(stderr, "Unable to write map value\n");
                         exit(EXIT_FAILURE);
-                    } 
-
-                    if (map_veof(&map_config, &map_value) > 0) {
-                        map_vreset(&map_config, &map_value);
-                        break;
                     }
                 }
+                map_vreset(&map_config, &map_value);
 
                 if (eoiflag == 0) {
-                    // write the concatenator if this is not the end of input
-                    if (available <= 0) {
-                        bufflush(obuffer, bufsize, stdout);
-                        obuffer_pos = 0;
-                        available = bufsize;
-                    }
+                    bufencap(obuffer, bufsize, &obuffer_pos, stdout);
                     obuffer[obuffer_pos++] = map_config.concatenator;
                 }
             }

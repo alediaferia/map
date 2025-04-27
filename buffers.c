@@ -35,8 +35,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FALLBACK_BUFFER_SIZE 4069
-
 void bufflush(const char *buf, size_t len, FILE *dst) {
     if (fwrite(buf, sizeof(char), len, dst) < len) {
         if (ferror(dst) > 0) {
@@ -48,10 +46,37 @@ void bufflush(const char *buf, size_t len, FILE *dst) {
     }
 }
 
-size_t calc_iobufsize(void) {
+char* bufalloc(size_t size) {
+    char *buffer = calloc(size, sizeof(char));
+    if (buffer == NULL) {
+        fprintf(stderr, "Unable to allocate buffer. Check that your system has enough memory (%ld bytes)", size);
+        exit(EXIT_FAILURE);
+    }
+
+    return buffer;
+}
+
+void bufencap(const char *buffer, size_t size, size_t *pos, FILE *dst) {
+    if ((*pos) >= size) {
+        bufflush(buffer, size, dst);
+        *pos = 0;
+    }
+}
+
+size_t calc_iobufsize(enum buf_type_t buftype, size_t fallback_size) {
     struct stat s;
 
-    int fd = fcntl(STDIN_FILENO, F_DUPFD, 0);
+    int tfd = -1;
+    switch (buftype) {
+        case BUF_STDIN:
+            tfd = STDIN_FILENO;
+            break;
+        case BUF_STDOUT:
+            tfd = STDOUT_FILENO;
+            break;
+    }
+
+    int fd = fcntl(tfd, F_DUPFD, 0);
     fstat(fd, &s);
     close(fd);
 
@@ -59,9 +84,10 @@ size_t calc_iobufsize(void) {
     if (bufsize <= 0) {
         /* try to use a page size from the system */
         bufsize = sysconf(_SC_PAGESIZE);
-        if (bufsize <= 0) {
-            bufsize = FALLBACK_BUFFER_SIZE; // arbitrary fall back
-        }
+    }
+
+    if (bufsize <= 0) {
+        bufsize = fallback_size;
     }
 
     return bufsize;

@@ -41,7 +41,7 @@ void test_example(void) {
 }
 
 void test_bufsize(void) {
-    assert(calc_iobufsize() > 1);
+    assert(calc_iobufsize(BUF_STDIN, 2) > 1);
 }
 
 int main(void) {

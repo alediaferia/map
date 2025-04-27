@@ -33,8 +33,19 @@
 #include <unistd.h>
 #include <stdio.h>
 
-void bufflush(const char *buf, size_t len, FILE *dst);
+enum buf_type_t {
+    BUF_STDIN,
+    BUF_STDOUT
+};
 
-size_t calc_iobufsize(void);
+void bufflush(const char *buf, size_t len, FILE *dst);
+char* bufalloc(size_t size);
+void bufencap(const char *buffer, size_t size, size_t *pos, FILE *dst);
+
+/*
+ * Computes a buffer size appropriate on the current system
+ * and returns fallback_size if an appropriate size cannot be determined.
+ */
+size_t calc_iobufsize(enum buf_type_t buftype, size_t fallback_size);
 
 #endif // BUFFERS_H

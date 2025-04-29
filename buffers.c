@@ -35,32 +35,72 @@
 #include <stdlib.h>
 #include <string.h>
 
-void bufflush(const char *buf, size_t len, FILE *dst) {
-    if (fwrite(buf, sizeof(char), len, dst) < len) {
+int buffer_init(buffer_t* buffer, size_t size) {
+    buffer->data = calloc(size, sizeof(char));
+    if (buffer->data == NULL) {
+        perror("buffer_init");
+        return BUFFER_MEM_ERROR;
+    }
+
+    buffer->size = size;
+    buffer->pos = 0;
+
+    return BUFFER_SUCCESS;
+}
+
+void buffer_free(buffer_t* buffer) {
+    if (buffer->data) {
+        free(buffer->data);
+        buffer->data = NULL;
+    }
+}
+
+void buffer_reset(buffer_t* buffer) {
+    buffer->pos = 0;
+}
+
+size_t buffer_load(buffer_t* dst, FILE* src) {
+    size_t r = fread(dst->data + dst->pos, sizeof(char), dst->size - dst->pos, src);
+    dst->pos += r;
+    return r;
+}
+
+size_t buffer_available(buffer_t *buffer) {
+    return buffer->size - buffer->pos;
+}
+
+int buffer_flush(FILE* dst, buffer_t* buffer) {
+    if (fwrite(buffer->data, sizeof(char), buffer->pos, dst) < buffer->pos) {
         if (ferror(dst) > 0) {
             fprintf(stderr, "Error: bufflush: unable to flush buffer: %s\n", strerror(errno));
         } else {
             fprintf(stderr, "Error: bufflush: unable to flush buffer\n");
         }
-        exit(EXIT_FAILURE);
+        return BUFFER_FLUSH_ERROR;
     }
+
+    return BUFFER_SUCCESS;
 }
 
-char* bufalloc(size_t size) {
-    char *buffer = calloc(size, sizeof(char));
-    if (buffer == NULL) {
-        fprintf(stderr, "Unable to allocate buffer. Check that your system has enough memory (%ld bytes)", size);
-        exit(EXIT_FAILURE);
+int buffer_extend(buffer_t* buffer, size_t newsize) {
+    if (newsize < buffer->size) {
+        return BUFFER_SIZE_TOO_SHORT;
     }
 
-    return buffer;
-}
-
-void bufencap(const char *buffer, size_t size, size_t *pos, FILE *dst) {
-    if ((*pos) >= size) {
-        bufflush(buffer, size, dst);
-        *pos = 0;
+    if (newsize == buffer->size) {
+        return BUFFER_SUCCESS;
     }
+
+    char *newbuf = realloc(buffer->data, newsize);
+    if (newbuf == NULL) {
+        perror("buffer_extend");
+        return BUFFER_MEM_ERROR;
+    }
+
+    buffer->data = newbuf;
+    buffer->size = newsize;
+
+    return BUFFER_SUCCESS;
 }
 
 size_t calc_iobufsize(enum buf_type_t buftype, size_t fallback_size) {

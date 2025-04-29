@@ -37,7 +37,7 @@
 
 #define FALLBACK_BUFFER_SIZE 4069
 
-static void init_from_opts(map_config_t *config, int *argc, char ***argv) {
+static inline void init_from_opts(map_config_t *config, int *argc, char ***argv) {
     map_config_init(config);
     map_config_load_from_args(config, argc, argv);
 
@@ -56,25 +56,28 @@ static void init_from_opts(map_config_t *config, int *argc, char ***argv) {
 }
 
 int main(int argc, char *argv[]) {
+    int exit_code = EXIT_SUCCESS;
     map_config_t map_config;
-    init_from_opts(&map_config, &argc, &argv);
-        
-    size_t bufsize = calc_iobufsize(BUF_STDIN, FALLBACK_BUFFER_SIZE);
-
-    char *buffer = bufalloc(bufsize);
-    char *obuffer = bufalloc(calc_iobufsize(BUF_STDOUT, FALLBACK_BUFFER_SIZE));
-
-    /* 
-        We are going to read from stdin to a buffer, for efficiency purposes.
-        Whenever we encounter the separator char, we will produce the map value
-        to the output buffer.
-        Whenever the output buffer fills up, we are going to flush it to stdout.
-    */
-
-    size_t bytes_read;
-    size_t obuffer_pos = 0;
-
+    size_t bytes_read = 0;
     map_value_t map_value;
+
+    buffer_t buf;
+    buffer_t obuf;
+
+    init_from_opts(&map_config, &argc, &argv);
+
+    if (buffer_init(&buf, calc_iobufsize(BUF_STDIN, FALLBACK_BUFFER_SIZE)) != BUFFER_SUCCESS) {
+        fprintf(stderr, "Unable to initialize buffer. Aborting.\n");
+        exit_code = EXIT_FAILURE;
+        goto cleanup;
+    }
+
+    if (buffer_init(&obuf, calc_iobufsize(BUF_STDOUT, FALLBACK_BUFFER_SIZE)) != BUFFER_SUCCESS) {
+        fprintf(stderr, "Unable to initialize buffer. Aborting.\n");
+        exit_code = EXIT_FAILURE;
+        goto cleanup;
+    }
+
     map_value_init(&map_value);
 
     /*
@@ -84,7 +87,7 @@ int main(int argc, char *argv[]) {
         else extend the buffer to read more and repeat
     */
 
-    while ((bytes_read = fread(buffer, sizeof(char), bufsize, stdin)) > 0) {
+    while ((bytes_read = buffer_load(&buf, stdin)) > 0) {
         int eoiflag = 0;
         size_t i = 0;
         int mapflag = 0;
@@ -94,7 +97,7 @@ int main(int argc, char *argv[]) {
             domap:
 
             eoiflag = (i == bytes_read - 1) && feof(stdin);
-            if (buffer[i] == map_config.separator || eoiflag == 1) {
+            if (buf.data[i] == map_config.separator || eoiflag == 1) {
                 mapflag = 1;
 
                 size_t itemlen = i - prev_spos;
@@ -104,7 +107,7 @@ int main(int argc, char *argv[]) {
                     continue;
                 } else {
                     /* save the current item (to be used if referenced in the output) */
-                    map_vicpy(&map_value, buffer + prev_spos, itemlen);
+                    map_vicpy(&map_value, buf.data + prev_spos, itemlen);
                     prev_spos = i + 1;
                 }
 
@@ -112,21 +115,24 @@ int main(int argc, char *argv[]) {
 
                 /* loop to write out the mapped value to the output buffer until done */
                 while (map_veof(&map_config, &map_value) <= 0) {
-                    bufencap(obuffer, bufsize, &obuffer_pos, stdout);
+                    buffer_flush(stdout, &obuf);
+                    buffer_reset(&obuf);
 
-                    size_t mapped = map_vread(obuffer + obuffer_pos, bufsize - obuffer_pos, &map_config, &map_value);
-                    obuffer_pos += mapped;
+                    size_t mapped = map_vread(obuf.data + obuf.pos, obuf.size - obuf.pos, &map_config, &map_value);
+                    obuf.pos += mapped;
 
                     if (map_verr(&map_config, &map_value) > 0) {
                         fprintf(stderr, "Unable to write map value\n");
-                        exit(EXIT_FAILURE);
+                        exit_code = EXIT_FAILURE;
+                        goto cleanup;
                     }
                 }
                 map_vreset(&map_config, &map_value);
 
                 if (eoiflag == 0) {
-                    bufencap(obuffer, bufsize, &obuffer_pos, stdout);
-                    obuffer[obuffer_pos++] = map_config.concatenator;
+                    buffer_flush(stdout, &obuf);
+                    buffer_reset(&obuf);
+                    obuf.data[obuf.pos++] = map_config.concatenator;
                 }
             }
 
@@ -135,6 +141,8 @@ int main(int argc, char *argv[]) {
                 map_value.item = NULL;
             }
         }
+
+        buffer_reset(&buf);
 
         if (mapflag == 0) {
             /* 
@@ -145,31 +153,25 @@ int main(int argc, char *argv[]) {
                 it if we expect more input coming in.
             */
             if (!feof(stdin)) {
-                size_t newsize = bufsize * 2;
-                char *newbuf = realloc(buffer, newsize);
-                if (newbuf == NULL) {
+                if (buffer_extend(&buf, buf.size * 2) != BUFFER_SUCCESS) {
                     fprintf(stderr, "Failed to allocate memory: unable to extend input buffer. Aborting.\n");
-                    free(buffer);
-                    free(obuffer);
-                    map_vclose(&map_config, &map_value);
-                    exit(EXIT_FAILURE);
+                    exit_code = EXIT_FAILURE;
+                    goto cleanup;
                 }
-                buffer = newbuf;
-                bytes_read += fread(buffer + bufsize, sizeof(char), newsize - bufsize, stdin);
-                bufsize = newsize;
+
+                bytes_read += buffer_load(&buf, stdin);
                 goto domap;
             }
         }
     }
 
     /* Flush any remaining data in the output buffer */
-    if (obuffer_pos > 0) {
-        bufflush(obuffer, obuffer_pos, stdout);
-    }
+    buffer_flush(stdout, &obuf);
 
-    free(buffer);
-    free(obuffer);
+cleanup:
+    buffer_free(&obuf);
+    buffer_free(&buf);
     map_vclose(&map_config, &map_value);
 
-    exit(EXIT_SUCCESS);
+    return exit_code;
 }

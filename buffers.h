@@ -38,9 +38,26 @@ enum buf_type_t {
     BUF_STDOUT
 };
 
-void bufflush(const char *buf, size_t len, FILE *dst);
-char* bufalloc(size_t size);
-void bufencap(const char *buffer, size_t size, size_t *pos, FILE *dst);
+typedef enum {
+    BUFFER_SUCCESS = 0,
+    BUFFER_MEM_ERROR,
+    BUFFER_FLUSH_ERROR,
+    BUFFER_SIZE_TOO_SHORT
+} buffer_result_t;
+
+typedef struct {
+    char *data;
+    int pos;
+    size_t size;
+} buffer_t;
+
+int buffer_init(buffer_t *buffer, size_t size);
+void buffer_free(buffer_t *buffer);
+void buffer_reset(buffer_t *buffer);
+size_t buffer_load(buffer_t *dst, FILE *src);
+size_t buffer_available(buffer_t *buffer);
+int buffer_flush(FILE *dst, buffer_t *buffer);
+int buffer_extend(buffer_t *buffer, size_t newsize);
 
 /*
  * Computes a buffer size appropriate on the current system

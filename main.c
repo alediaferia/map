@@ -27,7 +27,6 @@
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <assert.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -36,6 +35,7 @@
 #include "map.h"
 
 #define FALLBACK_BUFFER_SIZE 4069
+#define BUFFER_INCREASE_FACTOR 2
 
 static inline void init_from_opts(map_config_t *config, int *argc, char ***argv) {
     map_config_init(config);
@@ -55,30 +55,37 @@ static inline void init_from_opts(map_config_t *config, int *argc, char ***argv)
     }
 }
 
+static inline int init_buffers(buffer_t *ibuffer, buffer_t *obuffer) {
+    if (buffer_init(ibuffer, calc_iobufsize(BUF_STDIN, FALLBACK_BUFFER_SIZE)) != BUFFER_SUCCESS) {
+        return -1;
+    }
+
+    if (buffer_init(obuffer, calc_iobufsize(BUF_STDIN, FALLBACK_BUFFER_SIZE)) != BUFFER_SUCCESS) {
+        return -1;
+    } 
+
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
     int exit_code = EXIT_SUCCESS;
+
     map_config_t map_config;
+    init_from_opts(&map_config, &argc, &argv);
+
     size_t bytes_read = 0;
+
     map_value_t map_value;
+    map_value_init(&map_value);
 
     buffer_t buf;
     buffer_t obuf;
 
-    init_from_opts(&map_config, &argc, &argv);
-
-    if (buffer_init(&buf, calc_iobufsize(BUF_STDIN, FALLBACK_BUFFER_SIZE)) != BUFFER_SUCCESS) {
+    if (init_buffers(&buf, &obuf) != 0) {
         fprintf(stderr, "Unable to initialize buffer. Aborting.\n");
         exit_code = EXIT_FAILURE;
         goto cleanup;
     }
-
-    if (buffer_init(&obuf, calc_iobufsize(BUF_STDOUT, FALLBACK_BUFFER_SIZE)) != BUFFER_SUCCESS) {
-        fprintf(stderr, "Unable to initialize buffer. Aborting.\n");
-        exit_code = EXIT_FAILURE;
-        goto cleanup;
-    }
-
-    map_value_init(&map_value);
 
     /*
         read from stdin into the buffer
@@ -94,8 +101,6 @@ int main(int argc, char *argv[]) {
         int prev_spos = 0;
 
         for (; i < bytes_read; i++) {
-            domap:
-
             eoiflag = (i == bytes_read - 1) && feof(stdin);
             if (buf.data[i] == map_config.separator || eoiflag == 1) {
                 mapflag = 1;
@@ -140,29 +145,20 @@ int main(int argc, char *argv[]) {
                 free(map_value.item);
                 map_value.item = NULL;
             }
-        }
 
-        buffer_reset(&buf);
-
-        if (mapflag == 0) {
-            /* 
-                we haven't mapped the current input to anything yet
-                because we haven't found a separator character. 
-
-                We cannot through the current buffer away so we should extend
-                it if we expect more input coming in.
-            */
-            if (!feof(stdin)) {
-                if (buffer_extend(&buf, buf.size * 2) != BUFFER_SUCCESS) {
+            if (i == bytes_read - 1 && mapflag == 0 && !feof(stdin)) {
+                /* we have not found any separator character yet */
+                if (buffer_extend(&buf, buf.size * BUFFER_INCREASE_FACTOR) != BUFFER_SUCCESS) {
                     fprintf(stderr, "Failed to allocate memory: unable to extend input buffer. Aborting.\n");
                     exit_code = EXIT_FAILURE;
                     goto cleanup;
                 }
 
                 bytes_read += buffer_load(&buf, stdin);
-                goto domap;
             }
         }
+
+        buffer_reset(&buf);
     }
 
     /* Flush any remaining data in the output buffer */

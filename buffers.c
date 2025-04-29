@@ -92,6 +92,10 @@ int buffer_extend(buffer_t* buffer, size_t newsize) {
     }
 
     char *newbuf = realloc(buffer->data, newsize);
+
+    /* ensure added capacity is 0-filled */
+    memset(newbuf + buffer->size, 0, newsize - buffer->size);
+
     if (newbuf == NULL) {
         perror("buffer_extend");
         return BUFFER_MEM_ERROR;

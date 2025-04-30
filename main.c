@@ -67,6 +67,26 @@ static inline int init_buffers(buffer_t *ibuffer, buffer_t *obuffer) {
     return 0;
 }
 
+static inline int do_map(FILE *dst, map_config_t *config, map_value_t *value, buffer_t *buffer) {
+    map_vload(config, value);
+
+    /* loop to write out the mapped value to the output buffer until done */
+    while (map_veof(config, value) <= 0) {
+        buffer_flush(dst, buffer);
+        buffer_reset(buffer);
+
+        size_t mapped = map_vread(buffer->data + buffer->pos, buffer->size - buffer->pos, config, value);
+        buffer->pos += mapped;
+
+        if (map_verr(config, value) > 0) {
+            fprintf(stderr, "Unable to write map value\n");
+            return -1;
+        }
+    }
+    map_vreset(config, value);
+    return 0;
+}
+
 int main(int argc, char *argv[]) {
     int exit_code = EXIT_SUCCESS;
 
@@ -95,58 +115,35 @@ int main(int argc, char *argv[]) {
     */
 
     while ((bytes_read = buffer_load(&buf, stdin)) > 0) {
-        int eoiflag = 0;
+        int end_of_input = 0;
         size_t i = 0;
-        int mapflag = 0;
-        int prev_spos = 0;
+        int last_separator_pos = 0;
 
         for (; i < bytes_read; i++) {
-            eoiflag = (i == bytes_read - 1) && feof(stdin);
-            if (buf.data[i] == map_config.separator || eoiflag == 1) {
-                mapflag = 1;
-
-                size_t itemlen = i - prev_spos;
+            end_of_input = (i == bytes_read - 1) && feof(stdin);
+            if (buf.data[i] == map_config.separator || end_of_input == 1) {
+                size_t itemlen = i - last_separator_pos;
                 if (itemlen == 0) {
                     /* ignore the current item if empty */
-                    prev_spos = i + 1;
+                    last_separator_pos = i + 1;
                     continue;
                 } else {
                     /* save the current item (to be used if referenced in the output) */
-                    map_vicpy(&map_value, buf.data + prev_spos, itemlen);
-                    prev_spos = i + 1;
+                    map_vicpy(&map_value, buf.data + last_separator_pos, itemlen);
+                    last_separator_pos = i + 1;
                 }
 
-                map_vload(&map_config, &map_value);
-
-                /* loop to write out the mapped value to the output buffer until done */
-                while (map_veof(&map_config, &map_value) <= 0) {
-                    buffer_flush(stdout, &obuf);
-                    buffer_reset(&obuf);
-
-                    size_t mapped = map_vread(obuf.data + obuf.pos, obuf.size - obuf.pos, &map_config, &map_value);
-                    obuf.pos += mapped;
-
-                    if (map_verr(&map_config, &map_value) > 0) {
-                        fprintf(stderr, "Unable to write map value\n");
-                        exit_code = EXIT_FAILURE;
-                        goto cleanup;
-                    }
+                if (do_map(stdout, &map_config, &map_value, &obuf) != 0) {
+                    exit_code = EXIT_FAILURE;
+                    goto cleanup;
                 }
-                map_vreset(&map_config, &map_value);
 
-                if (eoiflag == 0) {
+                if (end_of_input == 0) {
                     buffer_flush(stdout, &obuf);
                     buffer_reset(&obuf);
                     obuf.data[obuf.pos++] = map_config.concatenator;
                 }
-            }
-
-            if (map_value.item != NULL) {
-                free(map_value.item);
-                map_value.item = NULL;
-            }
-
-            if (i == bytes_read - 1 && mapflag == 0 && !feof(stdin)) {
+            } else if (end_of_input) {
                 /* we have not found any separator character yet */
                 if (buffer_extend(&buf, buf.size * BUFFER_INCREASE_FACTOR) != BUFFER_SUCCESS) {
                     fprintf(stderr, "Failed to allocate memory: unable to extend input buffer. Aborting.\n");
@@ -155,6 +152,11 @@ int main(int argc, char *argv[]) {
                 }
 
                 bytes_read += buffer_load(&buf, stdin);
+            }
+
+            if (map_value.item != NULL) {
+                free(map_value.item);
+                map_value.item = NULL;
             }
         }
 

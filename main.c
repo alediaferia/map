@@ -37,7 +37,7 @@
 #define FALLBACK_BUFFER_SIZE 4069
 #define BUFFER_INCREASE_FACTOR 2
 
-static inline void init_from_opts(map_config_t *config, int *argc, char ***argv) {
+static inline int init_from_opts(map_config_t *config, int *argc, char ***argv) {
     map_config_init(config);
     map_config_load_from_args(config, argc, argv);
 
@@ -46,13 +46,15 @@ static inline void init_from_opts(map_config_t *config, int *argc, char ***argv)
         /* Neither -v nor --value-file nor --value-cmd specified */
         fprintf(stderr, "Error: One of -v, --value-file or --value-cmd must be explicitly specified\n");
         print_usage(*argv);
-        exit(EXIT_FAILURE);
+        return -1;
     }
 
     /* defaulting the concatenation argument to the separator one if unspecified */
     if (config->concatenator == 0) {
         config->concatenator = config->separator;
     }
+
+    return 0;
 }
 
 static inline int init_buffers(buffer_t *ibuffer, buffer_t *obuffer) {
@@ -91,7 +93,9 @@ int main(int argc, char *argv[]) {
     int exit_code = EXIT_SUCCESS;
 
     map_config_t map_config;
-    init_from_opts(&map_config, &argc, &argv);
+    if (init_from_opts(&map_config, &argc, &argv) != 0) {
+        return EXIT_FAILURE;
+    }
 
     size_t bytes_read = 0;
 

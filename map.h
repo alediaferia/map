@@ -30,12 +30,13 @@
 #ifndef MAP_H
 #define MAP_H
 
+#include "cmd.h"
 #include <stdio.h>
 
 typedef struct map_value {
     union {
         /* stream holding the map value (if not in msource) */
-        FILE *fsource;
+        cmd_stream_t *cmdsource;
 
         /* pointer to the map value in memory (if not in fsource) */
         const char *msource;

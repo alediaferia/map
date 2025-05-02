@@ -36,7 +36,7 @@
 #include <string.h>
 #include <fcntl.h>
 
-FILE* runcmd(int argc, char *argv[]) {
+cmd_stream_t* runcmd(int argc, char *argv[]) {
     if (argc == 0) {
         return NULL;
     }
@@ -44,6 +44,14 @@ FILE* runcmd(int argc, char *argv[]) {
     int pipefd[2];
     if (pipe(pipefd) == -1) {
         fprintf(stderr, "Error creating pipe: %s\n", strerror(errno));
+        return NULL;
+    }
+
+    cmd_stream_t *cmd = malloc(sizeof(cmd_stream_t));
+    if (cmd == NULL) {
+        perror("runcmd");
+        close(pipefd[0]);
+        close(pipefd[1]);
         return NULL;
     }
 
@@ -75,5 +83,29 @@ FILE* runcmd(int argc, char *argv[]) {
         return NULL;
     }
 
-    return fp;
+    cmd->pid = pid;
+    cmd->s = fp;
+
+    return cmd;
+}
+
+int closecmd(cmd_stream_t *cmd) {
+    int status = 0;
+    
+    if (cmd == NULL) {
+        return -1;
+    }
+    
+    if (cmd->s != NULL) {
+        fclose(cmd->s);
+        cmd->s = NULL;
+    }
+    
+    if (cmd->pid > 0) {
+        waitpid(cmd->pid, &status, 0);
+    }
+    
+    free(cmd);
+    
+    return status;
 }

@@ -32,6 +32,12 @@
 #define CMD_H
 
 #include <stdio.h>
+#include <sys/types.h>
+
+typedef struct {
+    pid_t pid;
+    FILE *s;
+} cmd_stream_t;
 
 /* 
  * Runs the given command and returns a stream to
@@ -39,6 +45,8 @@
  * 
  * Note: it's the caller's responsibility to pclose the stream.
  */
-FILE* runcmd(int argc, char *argv[]);
+cmd_stream_t* runcmd(int argc, char *argv[]);
+
+int closecmd(cmd_stream_t *cmd_stream);
 
 #endif // CMD_H

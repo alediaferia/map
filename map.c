@@ -60,8 +60,8 @@ size_t map_vread(char *dst, size_t max, const map_config_t *config, map_value_t 
     size_t len;
     switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_CMD:
-            /* relying on fsource's internal offset - no need to update ours */
-            return fread(dst, sizeof(char), max, v->fsource);
+            /* relying on cmdsource's internal offset - no need to update ours */
+            return fread(dst, sizeof(char), max, v->cmdsource->s);
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
         case MAP_VALUE_SOURCE_FILE:
             len = MIN(strlen(v->msource + v->pos), max);
@@ -77,7 +77,7 @@ size_t map_vread(char *dst, size_t max, const map_config_t *config, map_value_t 
 int map_veof(const map_config_t *config, const map_value_t *v) {
     switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_CMD:
-            return feof(v->fsource);
+            return feof(v->cmdsource->s);
         case MAP_VALUE_SOURCE_FILE:
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
         default:
@@ -88,7 +88,7 @@ int map_veof(const map_config_t *config, const map_value_t *v) {
 int map_verr(const map_config_t *config, const map_value_t *v) {
     switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_CMD:
-            return ferror(v->fsource);
+            return ferror(v->cmdsource->s);
         default:
             return 0;
     }
@@ -97,9 +97,9 @@ int map_verr(const map_config_t *config, const map_value_t *v) {
 void map_vreset(const map_config_t *config, map_value_t *v) {
     switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_CMD:
-            if (v->fsource != NULL) {
-                pclose(v->fsource);
-                v->fsource = NULL;
+            if (v->cmdsource != NULL) {
+                closecmd(v->cmdsource);
+                v->cmdsource = NULL;
             }
             break;
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
@@ -120,9 +120,9 @@ void map_vreset(const map_config_t *config, map_value_t *v) {
 void map_vclose(const map_config_t *config, map_value_t *v) {
     switch (config->vsource_t) {
         case MAP_VALUE_SOURCE_CMD:
-            if (v->fsource != NULL) {
-                pclose(v->fsource);
-                v->fsource = NULL;
+            if (v->cmdsource != NULL) {
+                closecmd(v->cmdsource);
+                v->cmdsource = NULL;
             }
             break;
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
@@ -174,8 +174,8 @@ void _map_vload_src_c(const map_config_t *config, map_value_t *v) {
         p_argv[argc++] = v->item;
     }
 
-    v->fsource = runcmd(argc, p_argv);
-    if (v->fsource == NULL) {
+    v->cmdsource = runcmd(argc, p_argv);
+    if (v->cmdsource == NULL) {
         exit(EXIT_FAILURE);
     }
 
@@ -197,7 +197,7 @@ void _map_vload_src_f(const map_config_t *config, map_value_t *v) {
 
     if (config->replstr) {
         const char *mmapped = v->msource;
-        v->msource = strreplall(v->msource, config->replstr, v->item);
+        v->msource = strreplall(v->msource, v->mlen, config->replstr, v->item);
         munmap((void*)mmapped, v->mlen);
         v->mlen = strlen(v->msource);
     }
@@ -205,7 +205,7 @@ void _map_vload_src_f(const map_config_t *config, map_value_t *v) {
 
 void _map_vload_src_a(const map_config_t *config, map_value_t *v) {
     if (config->replstr) {
-        v->msource = strreplall(config->vstatic, config->replstr, v->item);
+        v->msource = strreplall(config->vstatic, strlen(config->vstatic), config->replstr, v->item);
     } else {
         v->msource = config->vstatic;
     }
@@ -228,7 +228,7 @@ void map_vload(const map_config_t *config, map_value_t *v) {
             }
             break;
         case MAP_VALUE_SOURCE_CMD:
-            if (v->fsource == NULL) {
+            if (v->cmdsource == NULL) {
                 _map_vload_src_c(config, v);
             }
             break;
@@ -252,7 +252,7 @@ char** _map_repl_argv(const char *replstr, const char *v, int argc, char *argv[]
         }
         memcpy(arg, argv[i], len);
         if (i > 0) { /* do not replace the command */
-            arg = (char*)strreplall(arg, replstr, v);
+            arg = (char*)strreplall(arg, strlen(arg), replstr, v);
         }
         dst[i] = arg;
     }

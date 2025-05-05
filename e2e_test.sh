@@ -75,6 +75,7 @@ run_error_test() {
 echo "Creating test files..."
 echo -n "test content" > test_file.txt
 echo "multi-line\ntest\ncontent" > test_multiline.txt
+echo -en "@REPLACE_ME@:\nLove\nis\nall\nyou\nneed" > test_file_replstr.txt
 
 # -----------------
 # Basic Tests
@@ -95,6 +96,7 @@ run_test "Basic command value with item pass through" "./map --value-cmd -- echo
 # Test with replacement string
 run_test "Basic command value with replacement string" "./map -I {} --value-cmd -- echo -n 'This is {}'" "This is line1\nThis is line2\nThis is line3\n" "line1\nline2\nline3"
 run_test "Static value with replacement string" "./map -I {} -v 'Hello {}'" "Hello World\nHello People\n" "World\nPeople"
+run_test "Value file with replacement string" "./map -I '@REPLACE_ME@' --value-file test_file_replstr.txt" "What do you need?:\nLove\nis\nall\nyou\nneed\nWhat do I need?:\nLove\nis\nall\nyou\nneed\n" "What do you need?\nWhat do I need?"
 
 # -----------------
 # Custom Separator/Concatenator Tests
@@ -139,7 +141,7 @@ run_error_test "Invalid separator" "./map -v 'mapped' -s 'ab'" "must be a single
 # -----------------
 
 # Clean up test files
-rm -f test_file.txt test_multiline.txt
+rm -f test_file.txt test_multiline.txt test_file_replstr.txt
 
 # Print test summary
 echo -e "\n===================="

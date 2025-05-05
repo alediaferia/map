@@ -103,6 +103,7 @@ void map_vreset(const map_config_t *config, map_value_t *v) {
             }
             break;
         case MAP_VALUE_SOURCE_CMDLINE_ARG:
+        case MAP_VALUE_SOURCE_FILE:
             if (v->msource != NULL) {
                 if (config->replstr) {
                     free((void*)v->msource);

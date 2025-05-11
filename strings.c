@@ -48,7 +48,7 @@ static inline void fill_skip_table(int *t, const char *pattern, size_t pattern_l
  * little must be 0-terminated.
  * It scans len bytes at most.
  */
-static const char *strfind(const char *data, const char *little, size_t len, int *skip_table) {
+static inline const char *strfind(const char *data, const char *little, size_t len, int *skip_table) {
     /* Boyer–Moore–Horspool */
     size_t llen = strlen(little);
 
@@ -107,7 +107,7 @@ static void free_matches_table(matches_table_t *t) {
     t->count = 0;
 }
 
-const char *strreplall(const char *src, size_t srclen, const char *replstr, const char *v) {
+const char *strreplall(const char *src, size_t srclen, const char *replstr, const char *v, size_t *resultlen) {
     size_t replstrlen = strlen(replstr);
     if (replstrlen == 0) {
         return NULL;
@@ -159,6 +159,10 @@ const char *strreplall(const char *src, size_t srclen, const char *replstr, cons
     result[newsize - 1] = '\0';
 
     free_matches_table(&matches);
+
+    if (resultlen != NULL) {
+        *resultlen = newsize - 1;
+    }
     
     return result;
 }

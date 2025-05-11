@@ -40,7 +40,7 @@ void test_strreplall(void) {
     char v[] = "was";
     char expected[] = "Thwas was just a string";
 
-    const char *strreplall_r = strreplall(src, strlen(src), replstr, v);
+    const char *strreplall_r = strreplall(src, strlen(src), replstr, v, NULL);
 
     assert(strcmp(strreplall_r, expected) == 0);
 
@@ -52,7 +52,7 @@ void test_strreplall_nooccurs(void) {
     char replstr[] = "@}{";
     char v[] = "smth";
 
-    const char *output = strreplall(src, strlen(src), replstr, v);
+    const char *output = strreplall(src, strlen(src), replstr, v, NULL);
     assert(strcmp(output, src) == 0);
 
     free((void*)output);

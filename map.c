@@ -198,19 +198,20 @@ void _map_vload_src_f(const map_config_t *config, map_value_t *v) {
 
     if (config->replstr) {
         const char *mmapped = v->msource;
-        v->msource = strreplall(v->msource, v->mlen, config->replstr, v->item);
+        size_t size = 0;
+        v->msource = strreplall(v->msource, v->mlen, config->replstr, v->item, &size);
         munmap((void*)mmapped, v->mlen);
-        v->mlen = strlen(v->msource);
+        v->mlen = size;
     }
 }
 
 void _map_vload_src_a(const map_config_t *config, map_value_t *v) {
     if (config->replstr) {
-        v->msource = strreplall(config->vstatic, strlen(config->vstatic), config->replstr, v->item);
+        v->msource = strreplall(config->vstatic, strlen(config->vstatic), config->replstr, v->item, &(v->mlen));
     } else {
         v->msource = config->vstatic;
+        v->mlen = strlen(v->msource);
     }
-    v->mlen = strlen(v->msource);
 }
 
 void map_vload(const map_config_t *config, map_value_t *v) {
@@ -253,7 +254,7 @@ char** _map_repl_argv(const char *replstr, const char *v, int argc, char *argv[]
         }
         memcpy(arg, argv[i], len);
         if (i > 0) { /* do not replace the command */
-            arg = (char*)strreplall(arg, strlen(arg), replstr, v);
+            arg = (char*)strreplall(arg, strlen(arg), replstr, v, NULL);
         }
         dst[i] = arg;
     }

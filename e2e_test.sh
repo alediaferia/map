@@ -96,6 +96,9 @@ run_test "Basic command value with item pass through" "./map --value-cmd -- echo
 # Test with replacement string
 run_test "Basic command value with replacement string" "./map -I {} --value-cmd -- echo -n 'This is {}'" "This is line1\nThis is line2\nThis is line3\n" "line1\nline2\nline3"
 run_test "Static value with replacement string" "./map -I {} -v 'Hello {}'" "Hello World\nHello People\n" "World\nPeople"
+
+# Test with replacement string in value file: the pattern gets replaced
+# with each item coming from the input
 run_test "Value file with replacement string" "./map -I '@REPLACE_ME@' --value-file test_file_replstr.txt" "What do you need?:\nLove\nis\nall\nyou\nneed\nWhat do I need?:\nLove\nis\nall\nyou\nneed\n" "What do you need?\nWhat do I need?"
 
 # -----------------

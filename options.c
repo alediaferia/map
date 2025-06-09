@@ -82,6 +82,11 @@ void map_config_load_from_args(map_config_t *map_config, int *argc, char **argv[
                 }
                 map_config->vstatic = optarg;
                 map_config->vsource_t = MAP_VALUE_SOURCE_CMDLINE_ARG;
+
+                if (map_config->replstr == NULL) {
+                    map_config->stripi_f = 1;
+                }
+
                 break;
             case 'f': /* --value-file option */
                 if (map_config->vsource_t == MAP_VALUE_SOURCE_CMD || map_config->vsource_t == MAP_VALUE_SOURCE_CMDLINE_ARG) {
@@ -89,9 +94,13 @@ void map_config_load_from_args(map_config_t *map_config, int *argc, char **argv[
                     print_usage(*argv);
                     exit(EXIT_FAILURE);
                 }
+
                 map_config->vfpath = optarg;
                 map_config->vsource_t = MAP_VALUE_SOURCE_FILE;
-                map_config->stripi_f = 1;
+
+                if (map_config->replstr == NULL) {
+                    map_config->stripi_f = 1;
+                }
 
                 assert_faccessible(optarg);
                 break;

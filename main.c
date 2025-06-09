@@ -132,8 +132,10 @@ int main(int argc, char *argv[]) {
                     last_separator_pos = i + 1;
                     continue;
                 } else {
-                    /* save the current item (to be used if referenced in the output) */
-                    map_vicpy(&map_value, buf.data + last_separator_pos, itemlen);
+                    if (!map_config.stripi_f) {
+                        /* save the current item (to be used if referenced in the output) */
+                        map_vicpy(&map_value, buf.data + last_separator_pos, itemlen);
+                    }
                     last_separator_pos = i + 1;
                 }
 

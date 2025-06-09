@@ -39,37 +39,13 @@ $(TEST_TARGET): $(TEST_OBJ)
 	$(CC) $(TEST_OBJ) -o $(TEST_TARGET)
 
 performance-test: $(TARGET) $(PERF_TEST_TARGET)
-	@mkdir -p $(PERF_RESULTS_DIR)
-	./$(PERF_TEST_SCRIPT)
+	./$(PERF_TEST_TARGET)
 
 $(PERF_TEST_TARGET): $(PERF_TEST_OBJ)
 	$(CC) $(PERF_TEST_OBJ) -o $(PERF_TEST_TARGET)
 
 performance_test.o: $(PERF_TEST_SRC)
 	$(CC) $(CFLAGS) -c $< -o $@
-
-performance-report: $(PERF_RESULTS_DIR)
-	@echo "Generating performance report..."
-	@if [ ! -d $(PERF_RESULTS_DIR) ]; then \
-		echo "No performance test results found. Run 'make performance-test' first."; \
-		exit 1; \
-	fi
-	@latest=$$(find $(PERF_RESULTS_DIR) -name "results_*.txt" | sort -r | head -n1); \
-	if [ -n "$$latest" ]; then \
-		echo "Latest performance test results:"; \
-		echo "---------------------------------"; \
-		grep -A 25 "Performance Test Summary" "$$latest"; \
-	else \
-		echo "No performance test results found."; \
-	fi
-
-performance-analyze:
-	@echo "Analyzing performance trends..."
-	@if [ ! -f ./analyze_perf.py ]; then \
-		echo "Analysis script not found."; \
-		exit 1; \
-	fi
-	python3 ./analyze_perf.py
 
 # Pattern rule for object files
 %.o: %.c %.h

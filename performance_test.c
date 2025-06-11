@@ -506,7 +506,7 @@ void cleanup_test_files() {
 /*
  * Comprehensive performance test suite
  */
-void run_performance_test_suite() {
+void run_performance_test_suite(int selector) {
   // Seed the random number generator
   srand(time(NULL));
 
@@ -522,154 +522,186 @@ void run_performance_test_suite() {
                                     .alternative_cmd = "",
                                     .discard_input = 0};
 
-  // Test 1: Basic static value mapping (low volume)
-  perf_test_config_t test1 = base_config;
-  test1.name = "Static value mapping (small)";
-  test1.input_size_mb = 1;
-  test1.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
-  test1.alternative_cmd = "awk '{print \"static_value\"}'";
-  perf_metrics_t metrics1 = run_performance_test(&test1);
-  print_metrics(test1.name, metrics1);
+  perf_metrics_t* metrics[11];
+  memset((void*)metrics, 0, sizeof(metrics));
+  int last_metric_i = 0;
 
-  // Test 2: Basic static value mapping (medium volume)
-  perf_test_config_t test2 = base_config;
-  test2.name = "Static value mapping (medium)";
-  test2.input_size_mb = 10;
-  test2.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
-  test2.alternative_cmd = "awk '{print \"static_value\"}'";
-  perf_metrics_t metrics2 = run_performance_test(&test2);
-  print_metrics(test2.name, metrics2);
+  if (selector == 1 || selector == -1) {
+    // Test 1: Basic static value mapping (low volume)
+    perf_test_config_t test1 = base_config;
+    test1.name = "Static value mapping (small)";
+    test1.input_size_mb = 1;
+    test1.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
+    test1.alternative_cmd = "awk '{print \"static_value\"}'";
+    perf_metrics_t metrics1 = run_performance_test(&test1);
+    metrics[last_metric_i++] = &metrics1;
+    print_metrics(test1.name, metrics1);
+  }
 
-  // Test 3: Basic static value mapping (high volume)
-  perf_test_config_t test3 = base_config;
-  test3.name = "Static value mapping (large)";
-  test3.input_size_mb = 50;
-  test3.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
-  test3.alternative_cmd = "awk '{print \"static_value\"}'";
-  perf_metrics_t metrics3 = run_performance_test(&test3);
-  print_metrics(test3.name, metrics3);
+  if (selector == 2 || selector == -1) {
+    // Test 2: Basic static value mapping (medium volume)
+    perf_test_config_t test2 = base_config;
+    test2.name = "Static value mapping (medium)";
+    test2.input_size_mb = 10;
+    test2.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
+    test2.alternative_cmd = "awk '{print \"static_value\"}'";
+    perf_metrics_t metrics2 = run_performance_test(&test2);
+    metrics[last_metric_i++] = &metrics2;
+    print_metrics(test2.name, metrics2);
+  }
 
-  // Test 4: File-based value mapping
-  perf_test_config_t test4 = base_config;
-  test4.name = "File-based value mapping";
-  test4.input_size_mb = 10;
-  test4.source_type = MAP_VALUE_SOURCE_FILE;
-  test4.alternative_cmd =
-      "while IFS= read -r line; do sed \"s/@REPLACE_ME@/$line/g\" " VALUE_FILE;
-  test4.replacement_pattern = DEFAULT_PATTERN;
-  perf_metrics_t metrics4 = run_performance_test(&test4);
-  print_metrics(test4.name, metrics4);
+  if (selector == 3 || selector == -1) {
+    // Test 3: Basic static value mapping (high volume)
+    perf_test_config_t test3 = base_config;
+    test3.name = "Static value mapping (large)";
+    test3.input_size_mb = 50;
+    test3.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
+    test3.alternative_cmd = "awk '{print \"static_value\"}'";
+    perf_metrics_t metrics3 = run_performance_test(&test3);
+    metrics[last_metric_i++] = &metrics3;
+    print_metrics(test3.name, metrics3);
+  }
 
-  // Test 5: Command-based value mapping (static value)
-  perf_test_config_t test5 = base_config;
-  test5.name = "Command-based value mapping (static value)";
-  test5.input_size_mb = 10;
-  test5.source_type = MAP_VALUE_SOURCE_CMD;
-  test5.alternative_cmd = "xargs -I{} echo 'cmd_output'";
-  perf_metrics_t metrics5 = run_performance_test(&test5);
-  print_metrics(test5.name, metrics5);
+  if (selector == 4 || selector == -1) {
+    // Test 4: File-based value mapping
+    perf_test_config_t test4 = base_config;
+    test4.name = "File-based value mapping";
+    test4.input_size_mb = 10;
+    test4.source_type = MAP_VALUE_SOURCE_FILE;
+    test4.alternative_cmd =
+        "while IFS= read -r line; do sed \"s/@REPLACE_ME@/$line/g\" " VALUE_FILE;
+    test4.replacement_pattern = DEFAULT_PATTERN;
+    perf_metrics_t metrics4 = run_performance_test(&test4);
+    metrics[last_metric_i++] = &metrics4;
+    print_metrics(test4.name, metrics4);
+  }
 
-// Test 6: Command-based value mapping (pattern replacement)
-perf_test_config_t test6 = base_config;
-test6.name = "Command-based value mapping (pattern replacement)";
-test6.input_size_mb = 10;
-test6.source_type = MAP_VALUE_SOURCE_CMD;
-test6.alternative_cmd = "xargs -I{} echo 'cmd_output' {}";
-test6.replacement_pattern = DEFAULT_PATTERN;
-test6.replacement_frequency = 0.2;
-perf_metrics_t metrics6 = run_performance_test(&test5);
-print_metrics(test6.name, metrics5);
+  if (selector == 5 || selector == -1) {
+    // Test 5: Command-based value mapping (static value)
+    perf_test_config_t test5 = base_config;
+    test5.name = "Command-based value mapping (static value)";
+    test5.input_size_mb = 10;
+    test5.source_type = MAP_VALUE_SOURCE_CMD;
+    test5.alternative_cmd = "xargs -I{} echo 'cmd_output'";
+    perf_metrics_t metrics5 = run_performance_test(&test5);
+    metrics[last_metric_i++] = &metrics5;
+    print_metrics(test5.name, metrics5);
+  }
 
-  // Test 7: Pattern replacement (command-line value)
-  perf_test_config_t test7 = base_config;
-  test7.name = "Pattern replacement (command-line value)";
-  test7.input_size_mb = 10;
-  test7.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
-  test7.replacement_pattern = DEFAULT_PATTERN;
-  test7.alternative_cmd =
-      "sed 's/" DEFAULT_PATTERN "/" DEFAULT_REPLACEMENT "/g'";
-  test7.replacement_frequency = 0.2;
-  perf_metrics_t metrics7 = run_performance_test(&test7);
-  print_metrics(test7.name, metrics7);
+  if (selector == 6 || selector == -1) {
+    // Test 6: Command-based value mapping (pattern replacement)
+    perf_test_config_t test6 = base_config;
+    test6.name = "Command-based value mapping (pattern replacement)";
+    test6.input_size_mb = 10;
+    test6.source_type = MAP_VALUE_SOURCE_CMD;
+    test6.alternative_cmd = "xargs -I{} echo 'cmd_output' {}";
+    test6.replacement_pattern = DEFAULT_PATTERN;
+    test6.replacement_frequency = 0.2;
+    perf_metrics_t metrics6 = run_performance_test(&test6);
+    metrics[last_metric_i++] = &metrics6;
+    print_metrics(test6.name, metrics6);
+  }
 
-  // Test 8: Pattern replacement (file value)
-  perf_test_config_t test8 = base_config;
-  test8.name = "Pattern replacement (file value)";
-  test8.input_size_mb = 10;
-  test8.source_type = MAP_VALUE_SOURCE_FILE;
-  test8.replacement_pattern = DEFAULT_PATTERN;
-  test8.alternative_cmd = "awk -v val=\"$(cat " VALUE_FILE
-                          " )\" '{replaced_val = val; gsub(/" DEFAULT_PATTERN
-                          "/, $0, replaced_val); print replaced_val }'";
-  test8.replacement_frequency = 0.2;
-  perf_metrics_t metrics8 = run_performance_test(&test8);
-  print_metrics(test8.name, metrics8);
+  if (selector == 7 || selector == -1) {
+    // Test 7: Pattern replacement (command-line value)
+    perf_test_config_t test7 = base_config;
+    test7.name = "Pattern replacement (command-line value)";
+    test7.input_size_mb = 10;
+    test7.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
+    test7.replacement_pattern = DEFAULT_PATTERN;
+    test7.alternative_cmd =
+        "sed 's/" DEFAULT_PATTERN "/" DEFAULT_REPLACEMENT "/g'";
+    test7.replacement_frequency = 0.2;
+    perf_metrics_t metrics7 = run_performance_test(&test7);
+    metrics[last_metric_i++] = &metrics7;
+    print_metrics(test7.name, metrics7);
+  }
 
-  // Test 9: Custom separators
-  perf_test_config_t test9 = base_config;
-  test9.name = "Custom separators";
-  test9.input_size_mb = 10;
-  test9.separator = ",";
-  test9.concatenator = ";";
-  test9.alternative_cmd =
-      "tr ',' '\\n' | xargs -I{} echo 'static_value' | tr '\\n' ';'";
-  test9.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
-  perf_metrics_t metrics9 = run_performance_test(&test9);
-  print_metrics(test9.name, metrics9);
+  if (selector == 8 || selector == -1) {
+    // Test 8: Pattern replacement (file value)
+    perf_test_config_t test8 = base_config;
+    test8.name = "Pattern replacement (file value)";
+    test8.input_size_mb = 10;
+    test8.source_type = MAP_VALUE_SOURCE_FILE;
+    test8.replacement_pattern = DEFAULT_PATTERN;
+    test8.alternative_cmd = "awk -v val=\"$(cat " VALUE_FILE
+                            " )\" '{replaced_val = val; gsub(/" DEFAULT_PATTERN
+                            "/, $0, replaced_val); print replaced_val }'";
+    test8.replacement_frequency = 0.2;
+    perf_metrics_t metrics8 = run_performance_test(&test8);
+    metrics[last_metric_i++] = &metrics8;
+    print_metrics(test8.name, metrics8);
+  }
 
-  // Test 10: Discard input
-  perf_test_config_t test10 = base_config;
-  test10.name = "Discard input";
-  test10.input_size_mb = 10;
-  test10.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
-  test10.alternative_cmd = "xargs -I{} echo 'static_value'";
-  test10.discard_input = 1;
-  perf_metrics_t metrics10 = run_performance_test(&test10);
-  print_metrics(test10.name, metrics10);
+  if (selector == 9 || selector == -1) {
+    // Test 9: Custom separators
+    perf_test_config_t test9 = base_config;
+    test9.name = "Custom separators";
+    test9.input_size_mb = 10;
+    test9.separator = ",";
+    test9.concatenator = ";";
+    test9.alternative_cmd =
+        "tr ',' '\\n' | xargs -I{} echo 'static_value' | tr '\\n' ';'";
+    test9.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
+    perf_metrics_t metrics9 = run_performance_test(&test9);
+    metrics[last_metric_i++] = &metrics9;
+    print_metrics(test9.name, metrics9);
+  }
 
-  // Test 11: Large items
-  perf_test_config_t test11 = base_config;
-  test11.name = "Large items";
-  test11.input_size_mb = 10;
-  test11.item_size_bytes = 10000; // 10KB items
-  test11.alternative_cmd = "xargs -I{} echo 'static_value'";
-  test11.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
-  perf_metrics_t metrics11 = run_performance_test(&test11);
-  print_metrics(test11.name, metrics11);
+  if (selector == 10 || selector == -1) {
+    // Test 10: Discard input
+    perf_test_config_t test10 = base_config;
+    test10.name = "Discard input";
+    test10.input_size_mb = 10;
+    test10.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
+    test10.alternative_cmd = "xargs -I{} echo 'static_value'";
+    test10.discard_input = 1;
+    perf_metrics_t metrics10 = run_performance_test(&test10);
+    metrics[last_metric_i++] = &metrics10;
+    print_metrics(test10.name, metrics10);
+  }
+
+  if (selector == 11 || selector == -1) {
+    // Test 11: Large items
+    perf_test_config_t test11 = base_config;
+    test11.name = "Large items";
+    test11.input_size_mb = 10;
+    test11.item_size_bytes = 10000; // 10KB items
+    test11.alternative_cmd = "xargs -I{} echo 'static_value'";
+    test11.source_type = MAP_VALUE_SOURCE_CMDLINE_ARG;
+    perf_metrics_t metrics11 = run_performance_test(&test11);
+    metrics[last_metric_i++] = &metrics11;
+    print_metrics(test11.name, metrics11);
+  }
 
   // Clean up
   cleanup_test_files();
 
   // Print summary
   printf("\n======== Performance Test Summary ========\n");
-  printf("Test 1: %.2f MB/s, %.2f items/s\n", metrics1.throughput_mb_per_s,
-         metrics1.items_per_s);
-  printf("Test 2: %.2f MB/s, %.2f items/s\n", metrics2.throughput_mb_per_s,
-         metrics2.items_per_s);
-  printf("Test 3: %.2f MB/s, %.2f items/s\n", metrics3.throughput_mb_per_s,
-         metrics3.items_per_s);
-  printf("Test 4: %.2f MB/s, %.2f items/s\n", metrics4.throughput_mb_per_s,
-         metrics4.items_per_s);
-  printf("Test 5: %.2f MB/s, %.2f items/s\n", metrics5.throughput_mb_per_s,
-         metrics5.items_per_s);
-  printf("Test 6: %.2f MB/s, %.2f items/s\n", metrics6.throughput_mb_per_s,
-         metrics6.items_per_s);
-  printf("Test 7: %.2f MB/s, %.2f items/s\n", metrics7.throughput_mb_per_s,
-         metrics7.items_per_s);
-  printf("Test 8: %.2f MB/s, %.2f items/s\n", metrics8.throughput_mb_per_s,
-         metrics8.items_per_s);
-  printf("Test 9: %.2f MB/s, %.2f items/s\n", metrics9.throughput_mb_per_s,
-         metrics9.items_per_s);
-  printf("Test 10: %.2f MB/s, %.2f items/s\n", metrics10.throughput_mb_per_s,
-         metrics10.items_per_s);
-    printf("Test 11: %.2f MB/s, %.2f items/s\n", metrics11.throughput_mb_per_s,
-    metrics11.items_per_s);
+  for (int i = 0; i < sizeof(metrics); i++) {
+    perf_metrics_t *metric = metrics[i];
+    if (metric == NULL) {
+      break;
+    }
+
+    printf("Test %d: %.2f MB/s, %.2f items/s\n", i, metric->throughput_mb_per_s,
+         metric->items_per_s); 
+  }
 }
 
 int main(int argc, char *argv[]) {
   printf("==== Map Utility Performance Test Suite ====\n\n");
 
-  run_performance_test_suite();
+  int selector = -1;
+  if (argc > 1) {
+    char *opt = argv[1];
+    if (opt[0] == '-') {
+      selector = atoi(&opt[1]);
+    }
+  }
+
+  run_performance_test_suite(selector);
 
   return 0;
 }
